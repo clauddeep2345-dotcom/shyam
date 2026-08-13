@@ -60,6 +60,88 @@ function downloadCSV(
   URL.revokeObjectURL(url);
 }
 
+function downloadPDF(
+  entries: Entry[],
+  machineNumber: string,
+  machineName: string,
+  startDate: string,
+  endDate: string
+) {
+  const totalMeters = entries.reduce((s, e) => s + e.metersProduced, 0);
+  const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
+  const avgRate = entries.length > 0 ? totalAmount / totalMeters : 0;
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const title = `${machineNumber}${machineName ? ' — ' + machineName : ''}`;
+
+  const rows = entries.map((e, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${format(new Date(e.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+      <td>${e.workerName}</td>
+      <td>${e.rateApplied.toFixed(3)}</td>
+      <td>${e.metersProduced.toFixed(2)} m</td>
+      <td>\u20b9${e.amount.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${title} — Machine Report: ${startDate} to ${endDate}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; padding: 24px; }
+    h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+    .subtitle { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+    .cards { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .card { padding: 10px 16px; border-radius: 8px; min-width: 120px; }
+    .card label { font-size: 9px; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 2px; }
+    .card span { font-size: 16px; font-weight: 700; }
+    .card.green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .card.green label { color: #166534; } .card.green span { color: #15803d; }
+    .card.blue { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .card.blue label { color: #1d4ed8; } .card.blue span { color: #2563eb; }
+    .card.purple { background: #fdf4ff; border: 1px solid #e9d5ff; }
+    .card.purple label { color: #7e22ce; } .card.purple span { color: #7c3aed; }
+    .card.orange { background: #fff7ed; border: 1px solid #fed7aa; }
+    .card.orange label { color: #c2410c; } .card.orange span { color: #ea580c; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    thead tr { background: #1e293b; color: white; }
+    th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    tfoot tr { background: #f1f5f9; font-weight: 700; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div class="subtitle">Individual Machine Production Report</div>
+  <div class="meta">Period: ${startDate} to ${endDate} &nbsp;|&nbsp; Generated on ${dateStr} &nbsp;|&nbsp; ${entries.length} entries</div>
+  <div class="cards">
+    <div class="card green"><label>Total Meters</label><span>${totalMeters.toFixed(2)} m</span></div>
+    <div class="card blue"><label>Total Amount</label><span>\u20b9${totalAmount.toFixed(2)}</span></div>
+    <div class="card purple"><label>Total Entries</label><span>${entries.length}</span></div>
+    <div class="card orange"><label>Avg Rate</label><span>\u20b9${avgRate.toFixed(3)}/m</span></div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Date</th><th>Worker</th><th>Rate (\u20b9/m)</th><th>Meters</th><th>Amount (\u20b9)</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="4">TOTAL</td><td>${totalMeters.toFixed(2)} m</td><td>\u20b9${totalAmount.toFixed(2)}</td></tr></tfoot>
+  </table>
+  <script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) win.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 export default function MachineDetailClient({
   machineId,
   machineNumber,
@@ -110,13 +192,22 @@ export default function MachineDetailClient({
           </h1>
           <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Individual Machine Production Report</p>
         </div>
-        <button
-          className={tableStyles.primaryButton}
-          style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
-          onClick={() => downloadCSV(entries, machineNumber, machineName, serverStart, serverEnd)}
-        >
-          ⬇ Download CSV
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
+            onClick={() => downloadCSV(entries, machineNumber, machineName, serverStart, serverEnd)}
+          >
+            ⬇ Download CSV
+          </button>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#dc2626', boxShadow: '0 4px 6px -1px rgba(220,38,38,0.2)' }}
+            onClick={() => downloadPDF(entries, machineNumber, machineName, serverStart, serverEnd)}
+          >
+            📄 Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Date filter */}
