@@ -33,7 +33,6 @@ export async function createProductionEntry(params: {
 
   const amount = Math.round(params.metersProduced * rate * 100) / 100;
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from('production_entries')
     .insert({
