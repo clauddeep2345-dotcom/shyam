@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { writeAuditLog } from './audit';
 import { getCurrentUser } from './auth';
@@ -90,32 +91,31 @@ export async function deleteWorker(id: string): Promise<{ error?: string }> {
   if (!user || user.role !== 'admin') return { error: 'Unauthorized' };
 
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
 
   // Get old values for audit
   const { data: old } = await supabase.from('workers').select('*').eq('id', id).single();
 
   if (old) {
-    // 1. Delete worker advances
-    await supabase.from('worker_advances').delete().eq('worker_id', id);
-    
-    // 2. Delete payment adjustments
-    await supabase.from('payment_adjustments').delete().eq('worker_id', id);
-    
-    // 3. Delete payment history
-    await supabase.from('payment_history').delete().eq('worker_id', id);
-    
-    // 4. Delete payroll record lines
-    await supabase.from('payroll_record_lines').delete().eq('worker_id', id);
-    
-    // 5. Delete payroll records
-    await supabase.from('payroll_records').delete().eq('worker_id', id);
-    
-    // 6. Delete production entries
-    await supabase.from('production_entries').delete().eq('worker_id', id);
+    const tables = [
+      { name: 'worker_advances', label: 'Advances' },
+      { name: 'payment_adjustments', label: 'Payment Adjustments' },
+      { name: 'payment_history', label: 'Payment History' },
+      { name: 'payroll_record_lines', label: 'Payroll Lines' },
+      { name: 'payroll_records', label: 'Payroll Records' },
+      { name: 'production_entries', label: 'Production Entries' },
+    ];
+
+    for (const table of tables) {
+      const { error: delErr } = await adminSupabase.from(table.name).delete().eq('worker_id', id);
+      if (delErr) {
+        return { error: `Cannot delete worker. Failed to delete associated ${table.label}: ${delErr.message}` };
+      }
+    }
   }
 
   // 7. Finally delete the worker
-  const { error } = await supabase.from('workers').delete().eq('id', id);
+  const { error } = await adminSupabase.from('workers').delete().eq('id', id);
 
   if (error) return { error: error.message };
 
