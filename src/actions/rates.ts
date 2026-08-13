@@ -31,7 +31,7 @@ export async function setNewRate(params: {
   if (previousRates && previousRates.length > 0) {
     const prevDate = new Date(params.effectiveFrom);
     prevDate.setDate(prevDate.getDate() - 1);
-    const closingDate = prevDate.toISOString().split('T')[0];
+    const closingDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(prevDate);
 
     for (const prev of previousRates) {
       await supabase

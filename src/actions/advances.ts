@@ -39,7 +39,7 @@ export async function giveAdvance(params: {
     .insert({
       worker_id: params.workerId,
       amount: params.amount,
-      advance_date: new Date().toISOString().split('T')[0],
+      advance_date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()),
       reason: params.reason || null,
       given_by: user.id,
     })

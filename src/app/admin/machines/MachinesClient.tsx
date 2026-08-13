@@ -25,7 +25,7 @@ export default function MachinesClient({ initialMachines }: Props) {
 
   // Set Rate form
   const [newRate, setNewRate_] = useState('');
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
+  const [effectiveFrom, setEffectiveFrom] = useState(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,7 +98,7 @@ export default function MachinesClient({ initialMachines }: Props) {
                 <td>
                   <button
                     className={styles.actionButton}
-                    onClick={() => { setSelectedMachine(machine); setNewRate_(''); setEffectiveFrom(new Date().toISOString().split('T')[0]); setError(''); setIsRateOpen(true); }}
+                    onClick={() => { setSelectedMachine(machine); setNewRate_(''); setEffectiveFrom(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())); setError(''); setIsRateOpen(true); }}
                   >
                     Set Rate
                   </button>

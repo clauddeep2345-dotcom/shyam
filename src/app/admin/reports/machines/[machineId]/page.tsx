@@ -13,8 +13,8 @@ export default async function MachineDetailPage({
 }) {
   const { machineId } = await params;
   const sp = await searchParams;
-  const startDate = sp.start || new Date().toISOString().split('T')[0];
-  const endDate = sp.end || new Date().toISOString().split('T')[0];
+  const startDate = sp.start || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  const endDate = sp.end || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const supabase = await createClient();
 

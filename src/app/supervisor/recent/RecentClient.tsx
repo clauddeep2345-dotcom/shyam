@@ -51,14 +51,14 @@ function downloadCSV(entries: Entry[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `my_recent_entries_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `my_recent_entries_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 export default function RecentClient({ initialEntries, currentUserId, workers, machines }: Props) {
   const [entries, setEntries] = useState<Entry[]>(initialEntries);
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   // Edit state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -247,7 +247,7 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
           </div>
           <div className={tableStyles.formGroup}>
             <label>Production Date</label>
-            <input type="date" value={editDate} max={new Date().toISOString().split('T')[0]} onChange={e => setEditDate(e.target.value)} required />
+            <input type="date" value={editDate} max={new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())} onChange={e => setEditDate(e.target.value)} required />
           </div>
           <div className={tableStyles.formGroup}>
             <label>Meters Produced</label>

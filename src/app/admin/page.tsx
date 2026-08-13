@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const [
     { count: activeWorkers },

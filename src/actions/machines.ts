@@ -111,7 +111,7 @@ export async function getMachinesWithCurrentRate(): Promise<(Machine & { current
 
   if (!machines) return [];
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const { data: rates } = await supabase
     .from('machine_rates')

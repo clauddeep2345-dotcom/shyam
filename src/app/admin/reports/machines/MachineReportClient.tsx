@@ -137,7 +137,7 @@ export default function MachineReportClient({ initialSummary, startDate: serverS
   const [endDate, setEndDate] = useState(serverEnd);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   // Always use prop data — never stale state
   const summary = initialSummary;

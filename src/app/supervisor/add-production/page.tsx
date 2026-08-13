@@ -14,7 +14,7 @@ export default async function AddProductionPage() {
   ]);
 
   // Get machines with current rates
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
   const { data: rates } = await supabase
     .from('machine_rates')
     .select('machine_id, rate_per_meter')

@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 export default async function OwnerDashboard() {
   const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  const monthStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   const [
     { data: todayEntries },

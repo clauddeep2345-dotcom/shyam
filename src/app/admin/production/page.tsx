@@ -12,8 +12,8 @@ export default async function AdminProductionPage({
   searchParams: Promise<{ start?: string; end?: string }>;
 }) {
   const params = await searchParams;
-  const startDate = params.start || subDays(new Date(), 30).toISOString().split('T')[0];
-  const endDate = params.end || new Date().toISOString().split('T')[0];
+  const startDate = params.start || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(subDays(new Date(), 30));
+  const endDate = params.end || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,7 +25,7 @@ export default async function AdminProductionPage({
   ]);
 
   // Get current machine rates for edit modal
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
   const { data: rates } = await supabase
     .from('machine_rates')
     .select('machine_id, rate_per_meter')

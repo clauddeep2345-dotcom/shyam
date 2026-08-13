@@ -55,7 +55,7 @@ function downloadCSV(entries: Entry[], title: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `${title.replace(/\s+/g, '_')}_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -147,7 +147,7 @@ export default function ProductionListClient({
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [filterLoading, setFilterLoading] = useState(false);
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   // FIX: sync local state whenever server re-renders with new initialEntries (after filter navigation)
   useEffect(() => {

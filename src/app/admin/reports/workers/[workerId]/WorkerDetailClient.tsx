@@ -150,7 +150,7 @@ export default function WorkerDetailClient({
   const [endDate, setEndDate] = useState(serverEnd);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const totalMeters = entries.reduce((s, e) => s + e.metersProduced, 0);
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);

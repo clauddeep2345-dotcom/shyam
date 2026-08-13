@@ -224,7 +224,7 @@ export async function markPayrollPaid(
       payroll_record_id: payment.payrollRecordId,
       worker_id: payment.workerId,
       amount_paid: payment.amountPaid,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()),
       paid_by: user.id,
       payment_method: payment.paymentMethod,
       notes: payment.notes || null,

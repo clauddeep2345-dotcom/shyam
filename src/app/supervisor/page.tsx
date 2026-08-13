@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
   const { data: entries } = await supabase
     .from('production_entries')

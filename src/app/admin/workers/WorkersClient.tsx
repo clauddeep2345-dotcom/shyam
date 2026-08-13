@@ -18,7 +18,7 @@ export default function WorkersClient({ initialWorkers }: Props) {
   // Form State
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [joiningDate, setJoiningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [joiningDate, setJoiningDate] = useState(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
   const [active, setActive] = useState(true);
   
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function WorkersClient({ initialWorkers }: Props) {
     setEditingWorker(null);
     setName('');
     setPhone('');
-    setJoiningDate(new Date().toISOString().split('T')[0]);
+    setJoiningDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
     setActive(true);
     setError('');
     setIsModalOpen(true);
@@ -42,7 +42,7 @@ export default function WorkersClient({ initialWorkers }: Props) {
     setEditingWorker(worker);
     setName(worker.name);
     setPhone(worker.phone || '');
-    setJoiningDate(worker.joining_date || new Date().toISOString().split('T')[0]);
+    setJoiningDate(worker.joining_date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
     setActive(worker.active);
     setError('');
     setIsModalOpen(true);
