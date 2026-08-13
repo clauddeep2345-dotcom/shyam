@@ -26,9 +26,10 @@ interface Props {
 }
 
 function downloadCSV(entries: Entry[]) {
-  const headers = ['Production Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
+  const headers = ['Production Date', 'Entry Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
   const rows = entries.map(e => [
     e.productionDate,
+    e.entryDate ? e.entryDate.split('T')[0] : '',
     e.worker.name,
     e.machine.machineNumber,
     parseFloat(e.ratePerMeter).toFixed(3),

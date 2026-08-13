@@ -30,9 +30,10 @@ interface Props {
 }
 
 function downloadCSV(entries: Entry[], title: string) {
-  const headers = ['Production Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
+  const headers = ['Production Date', 'Entry Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
   const rows = entries.map(e => [
     e.productionDate,
+    e.entryDate || '',
     e.worker.name,
     e.machine.machineNumber,
     parseFloat(e.ratePerMeter).toFixed(3),
@@ -216,6 +217,7 @@ export default function ProductionListClient({
           <thead>
             <tr>
               <th>Production Date</th>
+              <th>Entry Date</th>
               <th>Worker</th>
               <th>Machine</th>
               <th>Rate (₹/m)</th>
@@ -228,6 +230,9 @@ export default function ProductionListClient({
             {entries.map(entry => (
               <tr key={entry.id}>
                 <td style={{ fontWeight: 600 }}>{format(new Date(entry.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+                <td style={{ color: '#64748b', fontSize: '13px' }}>
+                  {entry.entryDate ? format(new Date(entry.entryDate + 'T00:00:00'), 'dd MMM yyyy') : '—'}
+                </td>
                 <td>{entry.worker.name}</td>
                 <td>{entry.machine.machineNumber}</td>
                 <td>{parseFloat(entry.ratePerMeter).toFixed(3)}</td>
@@ -250,7 +255,7 @@ export default function ProductionListClient({
             ))}
             {entries.length === 0 && (
               <tr>
-                <td colSpan={canEditDelete ? 7 : 6} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                <td colSpan={canEditDelete ? 8 : 7} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
                   No production records found for this period.
                 </td>
               </tr>
