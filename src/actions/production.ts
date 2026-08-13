@@ -14,8 +14,10 @@ export async function createProductionEntry(params: {
   productionDate: string;
   notes?: string;
 }): Promise<{ error?: string; id?: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: 'Unauthorized' };
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) return { error: 'Unauthorized' };
 
   // Validate production date is not in the future
   const today = new Date().toISOString().split('T')[0];
@@ -42,7 +44,7 @@ export async function createProductionEntry(params: {
       entry_date: today,
       rate_applied: rate,
       amount,
-      entered_by: user.id,
+      entered_by: userId,
       notes: params.notes || null,
     })
     .select('id')
@@ -51,7 +53,7 @@ export async function createProductionEntry(params: {
   if (error) return { error: error.message };
 
   await writeAuditLog({
-    userId: user.id,
+    userId: userId,
     action: 'create',
     entityType: 'entry',
     entityId: data!.id,
