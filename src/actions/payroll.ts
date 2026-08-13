@@ -241,11 +241,20 @@ export async function markPayrollPaid(
       .eq('id', payment.payrollRecordId);
   }
 
-  // Update period status
-  await supabase
-    .from('payroll_periods')
-    .update({ status: 'paid' })
-    .eq('id', periodId);
+  // Only mark period as 'paid' if ALL records in the period are now paid
+  const { data: allRecords } = await supabase
+    .from('payroll_records')
+    .select('payment_status')
+    .eq('payroll_period_id', periodId);
+
+  const allPaid = allRecords && allRecords.length > 0 && allRecords.every(r => r.payment_status === 'paid');
+
+  if (allPaid) {
+    await supabase
+      .from('payroll_periods')
+      .update({ status: 'paid' })
+      .eq('id', periodId);
+  }
 
   await writeAuditLog({
     userId: user.id,

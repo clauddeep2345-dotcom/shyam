@@ -49,6 +49,85 @@ function downloadCSV(summary: WorkerSummary[], startDate: string, endDate: strin
   URL.revokeObjectURL(url);
 }
 
+function downloadPDF(summary: WorkerSummary[], startDate: string, endDate: string) {
+  const totalMeters = summary.reduce((s, w) => s + w.totalMeters, 0);
+  const totalAmount = summary.reduce((s, w) => s + w.totalAmount, 0);
+  const totalEntries = summary.reduce((s, w) => s + w.entries, 0);
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const rows = summary.map((w, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${w.name}</td>
+      <td>${w.entries}</td>
+      <td>${w.totalMeters.toFixed(2)} m</td>
+      <td>₹${w.totalAmount.toFixed(2)}</td>
+      <td>${(w.totalMeters / w.entries).toFixed(2)} m</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Worker-wise Production Report: ${startDate} to ${endDate}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    thead tr { background: #1e293b; color: white; }
+    th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .totals { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; display: flex; gap: 40px; }
+    .total-item label { font-size: 10px; text-transform: uppercase; color: #166534; font-weight: 700; display: block; margin-bottom: 2px; }
+    .total-item span { font-size: 18px; font-weight: 700; color: #15803d; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>Worker-wise Production Report</h1>
+  <div class="meta">Period: ${startDate} to ${endDate} &nbsp;|&nbsp; Generated on ${dateStr} &nbsp;|&nbsp; ${summary.length} workers</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Worker Name</th>
+        <th>Total Entries</th>
+        <th>Total Meters</th>
+        <th>Total Amount (₹)</th>
+        <th>Avg. per Entry</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td colspan="2">TOTAL</td>
+        <td>${totalEntries}</td>
+        <td>${totalMeters.toFixed(2)} m</td>
+        <td>₹${totalAmount.toFixed(2)}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="totals">
+    <div class="total-item"><label>Total Meters</label><span>${totalMeters.toFixed(2)} m</span></div>
+    <div class="total-item"><label>Total Amount</label><span>₹${totalAmount.toFixed(2)}</span></div>
+    <div class="total-item"><label>Total Workers</label><span>${summary.length}</span></div>
+  </div>
+  <script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) win.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 // NOTE: summary data comes directly from props (no useState wrapper)
 // This ensures fresh server data is always displayed after filtering.
 export default function WorkerReportClient({ initialSummary, startDate: serverStart, endDate: serverEnd }: Props) {
@@ -75,13 +154,22 @@ export default function WorkerReportClient({ initialSummary, startDate: serverSt
     <div>
       <div className={tableStyles.pageHeader}>
         <h1 className={tableStyles.pageTitle}>Worker-wise Production Report</h1>
-        <button
-          className={tableStyles.primaryButton}
-          style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
-          onClick={() => downloadCSV(summary, serverStart, serverEnd)}
-        >
-          ⬇ Download CSV
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
+            onClick={() => downloadCSV(summary, serverStart, serverEnd)}
+          >
+            ⬇ Download CSV
+          </button>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#dc2626', boxShadow: '0 4px 6px -1px rgba(220,38,38,0.2)' }}
+            onClick={() => downloadPDF(summary, serverStart, serverEnd)}
+          >
+            📄 Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Date filter */}
