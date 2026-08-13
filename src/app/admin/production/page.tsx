@@ -18,19 +18,19 @@ export default async function AdminProductionPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const today = new Date().toISOString().split('T')[0];
-  
-  const [entries, workers, machines, { data: rates }] = await Promise.all([
+  const [entries, workers, machines] = await Promise.all([
     getProductionEntries({ startDate, endDate }),
     getWorkers(true),
     getMachines(true),
-    supabase
-      .from('machine_rates')
-      .select('machine_id, rate_per_meter')
-      .lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`)
   ]);
 
+  // Get current machine rates for edit modal
+  const today = new Date().toISOString().split('T')[0];
+  const { data: rates } = await supabase
+    .from('machine_rates')
+    .select('machine_id, rate_per_meter')
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`);
   const rateMap = new Map<string, number>();
   rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
 

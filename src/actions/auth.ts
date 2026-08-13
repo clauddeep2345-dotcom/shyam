@@ -38,12 +38,6 @@ export async function login(email: string, password: string): Promise<{ error?: 
   }
 
   const role = userData?.role || 'admin';
-  
-  // Set a fast cookie for middleware routing to skip database queries
-  import('next/headers').then(({ cookies }) => {
-    cookies().then(c => c.set('user_role', role, { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 * 7 }));
-  });
-
   redirect(`/${role}`);
 }
 
@@ -53,11 +47,6 @@ export async function login(email: string, password: string): Promise<{ error?: 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  
-  import('next/headers').then(({ cookies }) => {
-    cookies().then(c => c.delete('user_role'));
-  });
-
   redirect('/login');
 }
 

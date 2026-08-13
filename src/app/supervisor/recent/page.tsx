@@ -8,32 +8,32 @@ export default async function SupervisorRecentPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const today = new Date().toISOString().split('T')[0];
+  const { data: entries } = await supabase
+    .from('production_entries')
+    .select(`
+      id, production_date, entry_date, meters_produced, rate_applied, amount,
+      entered_by,
+      workers!inner(id, name),
+      machines!inner(id, machine_number)
+    `)
+    .eq('entered_by', user?.id || '')
+    .eq('is_deleted', false)
+    .order('entry_date', { ascending: false })
+    .limit(100);
 
-  const [{ data: entries }, { data: rates }, workers, machines] = await Promise.all([
-    supabase
-      .from('production_entries')
-      .select(`
-        id, production_date, entry_date, meters_produced, rate_applied, amount,
-        entered_by,
-        workers!inner(id, name),
-        machines!inner(id, machine_number)
-      `)
-      .eq('entered_by', user?.id || '')
-      .eq('is_deleted', false)
-      .order('entry_date', { ascending: false })
-      .limit(100),
-    supabase
-      .from('machine_rates')
-      .select('machine_id, rate_per_meter')
-      .lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`),
+  const today = new Date().toISOString().split('T')[0];
+  const { data: rates } = await supabase
+    .from('machine_rates')
+    .select('machine_id, rate_per_meter')
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`);
+  const rateMap = new Map<string, number>();
+  rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
+
+  const [workers, machines] = await Promise.all([
     getWorkers(true),
     getMachines(true),
   ]);
-
-  const rateMap = new Map<string, number>();
-  rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
 
   const serialized = (entries || []).map(e => ({
     id: e.id,

@@ -8,17 +8,18 @@ export default async function AdminAddProductionPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const [workers, machines, { data: rates }] = await Promise.all([
-    getWorkers(true),
-    getMachines(true),
-    supabase
-      .from('machine_rates')
-      .select('machine_id, rate_per_meter')
-      .lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`)
+  const [workers, machines] = await Promise.all([
+    getWorkers(true), // active only
+    getMachines(true), // active only
   ]);
+
+  // Get machines with current rates
+  const today = new Date().toISOString().split('T')[0];
+  const { data: rates } = await supabase
+    .from('machine_rates')
+    .select('machine_id, rate_per_meter')
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`);
 
   const rateMap = new Map<string, number>();
   rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
