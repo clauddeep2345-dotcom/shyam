@@ -15,7 +15,8 @@ interface Props {
 
 export default function MachinesClient({ initialMachines }: Props) {
   const [machines, setMachines] = useState<MachineWithRate[]>(initialMachines);
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingMachine, setEditingMachine] = useState<MachineWithRate | null>(null);
   const [isRateOpen, setIsRateOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<MachineWithRate | null>(null);
 
@@ -29,14 +30,36 @@ export default function MachinesClient({ initialMachines }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleAddMachine = async (e: React.FormEvent) => {
+  const openAddForm = () => {
+    setEditingMachine(null);
+    setMachineNumber('');
+    setError('');
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (machine: MachineWithRate) => {
+    setEditingMachine(machine);
+    setMachineNumber(machine.machine_number);
+    setError('');
+    setIsFormOpen(true);
+  };
+
+  const handleSaveMachine = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const result = await createMachine({ machine_number: machineNumber, name: machineNumber });
-    if (result.error) { setError(result.error); setLoading(false); return; }
-    setMachines([...machines, { id: result.id!, machine_number: machineNumber, name: machineNumber, active: true, current_rate: null, created_at: '', updated_at: '' }]);
-    setIsAddOpen(false);
+
+    if (editingMachine) {
+      const result = await updateMachine(editingMachine.id, { machine_number: machineNumber, name: machineNumber });
+      if (result.error) { setError(result.error); setLoading(false); return; }
+      setMachines(machines.map(m => m.id === editingMachine.id ? { ...m, machine_number: machineNumber, name: machineNumber } : m));
+    } else {
+      const result = await createMachine({ machine_number: machineNumber, name: machineNumber });
+      if (result.error) { setError(result.error); setLoading(false); return; }
+      setMachines([...machines, { id: result.id!, machine_number: machineNumber, name: machineNumber, active: true, current_rate: null, created_at: '', updated_at: '' }]);
+    }
+    
+    setIsFormOpen(false);
     setMachineNumber('');
     setLoading(false);
   };
@@ -66,7 +89,7 @@ export default function MachinesClient({ initialMachines }: Props) {
     <div>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Machines & Rates</h1>
-        <button className={styles.primaryButton} onClick={() => setIsAddOpen(true)}>+ Add Machine</button>
+        <button className={styles.primaryButton} onClick={openAddForm}>+ Add Machine</button>
       </div>
 
       <div className={styles.tableContainer}>
@@ -94,6 +117,12 @@ export default function MachinesClient({ initialMachines }: Props) {
                 <td>
                   <button
                     className={styles.actionButton}
+                    onClick={() => openEditForm(machine)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className={styles.actionButton}
                     onClick={() => { setSelectedMachine(machine); setNewRate_(''); setEffectiveFrom(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())); setError(''); setIsRateOpen(true); }}
                   >
                     Set Rate
@@ -111,16 +140,16 @@ export default function MachinesClient({ initialMachines }: Props) {
         </table>
       </div>
 
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Machine">
-        <form onSubmit={handleAddMachine}>
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingMachine ? "Edit Machine" : "Add Machine"}>
+        <form onSubmit={handleSaveMachine}>
           {error && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
           <div className={styles.formGroup}>
             <label>Machine Number</label>
             <input required type="text" value={machineNumber} onChange={e => setMachineNumber(e.target.value)} placeholder="e.g. M-01" />
           </div>
           <div className={styles.formActions}>
-            <button type="button" className={styles.cancelButton} onClick={() => setIsAddOpen(false)}>Cancel</button>
-            <button type="submit" className={styles.primaryButton} disabled={loading}>{loading ? 'Saving...' : 'Add Machine'}</button>
+            <button type="button" className={styles.cancelButton} onClick={() => setIsFormOpen(false)}>Cancel</button>
+            <button type="submit" className={styles.primaryButton} disabled={loading}>{loading ? 'Saving...' : (editingMachine ? 'Save Changes' : 'Add Machine')}</button>
           </div>
         </form>
       </Modal>
