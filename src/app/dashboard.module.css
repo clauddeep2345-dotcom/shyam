@@ -1,0 +1,35 @@
+.dashboardLayout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.mainContent {
+  flex: 1;
+  margin-left: 260px;
+  padding: 32px;
+  max-width: calc(100% - 260px);
+  min-width: 0;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .dashboardLayout {
+    flex-direction: column;
+  }
+
+  .mainContent {
+    margin-left: 0;
+    max-width: 100%;
+    padding: 16px;
+    /* Push content below the fixed mobile header (56px) */
+    margin-top: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainContent {
+    padding: 12px;
+  }
+}

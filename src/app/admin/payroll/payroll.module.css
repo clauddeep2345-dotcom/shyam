@@ -1,0 +1,129 @@
+.container {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 120px);
+}
+
+.periodList {
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.periodList h3 {
+  margin: 0;
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.periodCard {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.periodCard:hover {
+  background: #f8fafc;
+}
+
+.activeCard {
+  background: #f0f9ff;
+  border-left: 4px solid #0ea5e9;
+}
+
+.activeCard:hover {
+  background: #f0f9ff;
+}
+
+.periodDates {
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.periodMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.statusBadge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.statusBadge[data-status="DRAFT"] { background: #f1f5f9; color: #475569; }
+.statusBadge[data-status="FINALIZED"] { background: #fef9c3; color: #854d0e; }
+.statusBadge[data-status="PAID"] { background: #dcfce7; color: #166534; }
+
+.noData {
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.periodDetails {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detailsHeader {
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailsHeader h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.detailsHeader p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #64748b;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .periodList {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
