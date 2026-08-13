@@ -85,6 +85,31 @@ export async function toggleWorkerActive(id: string, active: boolean): Promise<{
   return updateWorker(id, { active });
 }
 
+export async function deleteWorker(id: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'admin') return { error: 'Unauthorized' };
+
+  const supabase = await createClient();
+
+  // Get old values for audit
+  const { data: old } = await supabase.from('workers').select('*').eq('id', id).single();
+
+  const { error } = await supabase.from('workers').delete().eq('id', id);
+
+  if (error) return { error: error.message };
+
+  await writeAuditLog({
+    userId: user.id,
+    action: 'delete',
+    entityType: 'worker',
+    entityId: id,
+    oldValue: old as Record<string, unknown>,
+  });
+
+  revalidatePath('/admin/workers');
+  return {};
+}
+
 export async function getWorkerStats(workerId: string) {
   const supabase = await createClient();
 

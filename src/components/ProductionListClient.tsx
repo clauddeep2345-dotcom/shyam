@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import tableStyles from './table.module.css';
 import Modal from './Modal';
 import { format, subDays } from 'date-fns';
@@ -60,6 +60,80 @@ function downloadCSV(entries: Entry[], title: string) {
   URL.revokeObjectURL(url);
 }
 
+function downloadPDF(entries: Entry[], title: string) {
+  const totalMeters = entries.reduce((s, e) => s + parseFloat(e.meters), 0);
+  const totalAmount = entries.reduce((s, e) => s + parseFloat(e.amount), 0);
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const rows = entries.map(e => `
+    <tr>
+      <td>${format(new Date(e.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+      <td>${e.entryDate ? format(new Date(e.entryDate + 'T00:00:00'), 'dd MMM yyyy') : '—'}</td>
+      <td>${e.worker.name}</td>
+      <td>${e.machine.machineNumber}</td>
+      <td>${parseFloat(e.ratePerMeter).toFixed(3)}</td>
+      <td>${parseFloat(e.meters).toFixed(2)}</td>
+      <td>₹${parseFloat(e.amount).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    thead tr { background: #1e293b; color: white; }
+    th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .totals { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; display: flex; gap: 40px; }
+    .total-item label { font-size: 10px; text-transform: uppercase; color: #166534; font-weight: 700; display: block; margin-bottom: 2px; }
+    .total-item span { font-size: 18px; font-weight: 700; color: #15803d; }
+    @media print {
+      body { padding: 12px; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div class="meta">Generated on ${dateStr} &nbsp;|&nbsp; ${entries.length} entries</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Production Date</th>
+        <th>Entry Date</th>
+        <th>Worker</th>
+        <th>Machine</th>
+        <th>Rate (₹/m)</th>
+        <th>Meters</th>
+        <th>Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="totals">
+    <div class="total-item"><label>Total Meters</label><span>${totalMeters.toFixed(2)} m</span></div>
+    <div class="total-item"><label>Total Value</label><span>₹${totalAmount.toFixed(2)}</span></div>
+    <div class="total-item"><label>Total Entries</label><span>${entries.length}</span></div>
+  </div>
+  <script>window.onload = function(){ window.print(); }</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) win.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 export default function ProductionListClient({
   initialEntries,
   title,
@@ -74,6 +148,12 @@ export default function ProductionListClient({
   const [filterLoading, setFilterLoading] = useState(false);
   const router = useRouter();
   const today = new Date().toISOString().split('T')[0];
+
+  // FIX: sync local state whenever server re-renders with new initialEntries (after filter navigation)
+  useEffect(() => {
+    setEntries(initialEntries);
+    setFilterLoading(false);
+  }, [initialEntries]);
 
   // Edit state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -95,7 +175,7 @@ export default function ProductionListClient({
     e.preventDefault();
     setFilterLoading(true);
     router.push(`?start=${startDate}&end=${endDate}`);
-    setFilterLoading(false);
+    // filterLoading will reset after useEffect fires with new initialEntries
   };
 
   const totalMeters = entries.reduce((sum, e) => sum + parseFloat(e.meters), 0);
@@ -169,13 +249,22 @@ export default function ProductionListClient({
     <div>
       <div className={tableStyles.pageHeader}>
         <h1 className={tableStyles.pageTitle}>{title}</h1>
-        <button
-          className={tableStyles.primaryButton}
-          style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
-          onClick={() => downloadCSV(entries, title)}
-        >
-          ⬇ Download CSV
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#16a34a', boxShadow: '0 4px 6px -1px rgba(22,163,74,0.2)' }}
+            onClick={() => downloadCSV(entries, title)}
+          >
+            ⬇ Download CSV
+          </button>
+          <button
+            className={tableStyles.primaryButton}
+            style={{ background: '#dc2626', boxShadow: '0 4px 6px -1px rgba(220,38,38,0.2)' }}
+            onClick={() => downloadPDF(entries, title)}
+          >
+            📄 Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Date filter */}

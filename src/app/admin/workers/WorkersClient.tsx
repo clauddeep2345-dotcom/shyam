@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import styles from '@/components/table.module.css';
 import Modal from '@/components/Modal';
-import { createWorker, updateWorker, toggleWorkerActive } from '@/actions/workers';
+import { createWorker, updateWorker, toggleWorkerActive, deleteWorker } from '@/actions/workers';
 import type { Worker } from '@/lib/types/database';
 
 interface Props {
@@ -23,6 +23,10 @@ export default function WorkersClient({ initialWorkers }: Props) {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Delete state
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const openAddModal = () => {
     setEditingWorker(null);
@@ -65,7 +69,6 @@ export default function WorkersClient({ initialWorkers }: Props) {
           joining_date: joiningDate,
         });
         if (result.error) { setError(result.error); return; }
-        // Refresh: add a placeholder entry
         setWorkers([...workers, { id: result.id!, name, phone: phone || null, joining_date: joiningDate, active: true, created_at: '', updated_at: '' }]);
       }
       setIsModalOpen(false);
@@ -83,6 +86,21 @@ export default function WorkersClient({ initialWorkers }: Props) {
     } catch (err: unknown) {
       alert((err as Error).message);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleteLoading(true);
+    const result = await deleteWorker(deleteId);
+    if (result.error) {
+      alert(result.error);
+      setDeleteLoading(false);
+      setDeleteId(null);
+      return;
+    }
+    setWorkers(workers.filter(w => w.id !== deleteId));
+    setDeleteId(null);
+    setDeleteLoading(false);
   };
 
   return (
@@ -119,6 +137,12 @@ export default function WorkersClient({ initialWorkers }: Props) {
                   <button className={styles.actionButton} onClick={() => handleToggleActive(worker)}>
                     {worker.active ? 'Deactivate' : 'Activate'}
                   </button>
+                  <button
+                    className={`${styles.actionButton} ${styles.deleteButton}`}
+                    onClick={() => setDeleteId(worker.id)}
+                  >
+                    🗑 Delete
+                  </button>
                 </td>
               </tr>
             ))}
@@ -131,6 +155,7 @@ export default function WorkersClient({ initialWorkers }: Props) {
         </table>
       </div>
 
+      {/* Add / Edit Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -173,6 +198,24 @@ export default function WorkersClient({ initialWorkers }: Props) {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Worker">
+        <p style={{ color: '#475569', marginBottom: '24px', fontSize: '15px' }}>
+          Are you sure you want to <strong>permanently delete</strong> this worker? This cannot be undone and will also remove all associated data.
+        </p>
+        <div className={styles.formActions}>
+          <button className={styles.cancelButton} onClick={() => setDeleteId(null)}>Cancel</button>
+          <button
+            className={styles.primaryButton}
+            style={{ background: '#ef4444', boxShadow: '0 4px 6px -1px rgba(239,68,68,0.2)' }}
+            disabled={deleteLoading}
+            onClick={handleDelete}
+          >
+            {deleteLoading ? 'Deleting...' : '🗑 Yes, Delete'}
+          </button>
+        </div>
       </Modal>
     </div>
   );
