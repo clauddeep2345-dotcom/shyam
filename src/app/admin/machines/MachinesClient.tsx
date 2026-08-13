@@ -21,7 +21,6 @@ export default function MachinesClient({ initialMachines }: Props) {
 
   // Add Machine form
   const [machineNumber, setMachineNumber] = useState('');
-  const [machineName, setMachineName] = useState('');
 
   // Set Rate form
   const [newRate, setNewRate_] = useState('');
@@ -34,12 +33,11 @@ export default function MachinesClient({ initialMachines }: Props) {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const result = await createMachine({ machine_number: machineNumber, name: machineName });
+    const result = await createMachine({ machine_number: machineNumber, name: machineNumber });
     if (result.error) { setError(result.error); setLoading(false); return; }
-    setMachines([...machines, { id: result.id!, machine_number: machineNumber, name: machineName, active: true, current_rate: null, created_at: '', updated_at: '' }]);
+    setMachines([...machines, { id: result.id!, machine_number: machineNumber, name: machineNumber, active: true, current_rate: null, created_at: '', updated_at: '' }]);
     setIsAddOpen(false);
     setMachineNumber('');
-    setMachineName('');
     setLoading(false);
   };
 
@@ -76,7 +74,6 @@ export default function MachinesClient({ initialMachines }: Props) {
           <thead>
             <tr>
               <th>Machine No.</th>
-              <th>Name</th>
               <th>Current Rate (₹/m)</th>
               <th>Status</th>
               <th>Actions</th>
@@ -86,7 +83,6 @@ export default function MachinesClient({ initialMachines }: Props) {
             {machines.map(machine => (
               <tr key={machine.id}>
                 <td style={{ fontWeight: 600 }}>{machine.machine_number}</td>
-                <td>{machine.name}</td>
                 <td style={{ fontWeight: 600, color: '#16a34a' }}>
                   {machine.current_rate !== null ? `₹${machine.current_rate.toFixed(3)}` : '—'}
                 </td>
@@ -109,7 +105,7 @@ export default function MachinesClient({ initialMachines }: Props) {
               </tr>
             ))}
             {machines.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>No machines found.</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '24px' }}>No machines found.</td></tr>
             )}
           </tbody>
         </table>
@@ -121,10 +117,6 @@ export default function MachinesClient({ initialMachines }: Props) {
           <div className={styles.formGroup}>
             <label>Machine Number</label>
             <input required type="text" value={machineNumber} onChange={e => setMachineNumber(e.target.value)} placeholder="e.g. M-01" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Name / Description</label>
-            <input required type="text" value={machineName} onChange={e => setMachineName(e.target.value)} placeholder="e.g. Loom 1" />
           </div>
           <div className={styles.formActions}>
             <button type="button" className={styles.cancelButton} onClick={() => setIsAddOpen(false)}>Cancel</button>
