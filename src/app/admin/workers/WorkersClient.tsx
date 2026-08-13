@@ -26,6 +26,7 @@ export default function WorkersClient({ initialWorkers }: Props) {
 
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const openAddModal = () => {
@@ -89,16 +90,18 @@ export default function WorkersClient({ initialWorkers }: Props) {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!confirmDeleteId) return;
     setDeleteLoading(true);
-    const result = await deleteWorker(deleteId);
+    const result = await deleteWorker(confirmDeleteId);
     if (result.error) {
       alert(result.error);
       setDeleteLoading(false);
+      setConfirmDeleteId(null);
       setDeleteId(null);
       return;
     }
-    setWorkers(workers.filter(w => w.id !== deleteId));
+    setWorkers(workers.filter(w => w.id !== confirmDeleteId));
+    setConfirmDeleteId(null);
     setDeleteId(null);
     setDeleteLoading(false);
   };
@@ -200,20 +203,42 @@ export default function WorkersClient({ initialWorkers }: Props) {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Worker">
+      {/* First Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteId && !confirmDeleteId} onClose={() => setDeleteId(null)} title="Delete Worker">
         <p style={{ color: '#475569', marginBottom: '24px', fontSize: '15px' }}>
-          Are you sure you want to <strong>permanently delete</strong> this worker? This cannot be undone and will also remove all associated data.
+          Are you sure you want to delete this worker?
         </p>
         <div className={styles.formActions}>
           <button className={styles.cancelButton} onClick={() => setDeleteId(null)}>Cancel</button>
           <button
             className={styles.primaryButton}
             style={{ background: '#ef4444', boxShadow: '0 4px 6px -1px rgba(239,68,68,0.2)' }}
+            onClick={() => setConfirmDeleteId(deleteId)}
+          >
+            🗑 Yes, Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Second (Final) Delete Confirmation Modal */}
+      <Modal isOpen={!!confirmDeleteId} onClose={() => { setConfirmDeleteId(null); setDeleteId(null); }} title="FINAL WARNING">
+        <div style={{ background: '#fee2e2', border: '1px solid #f87171', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+          <p style={{ color: '#b91c1c', fontSize: '15px', fontWeight: 'bold', margin: 0 }}>
+            🚨 DANGER: You are about to PERMANENTLY delete this worker!
+          </p>
+          <p style={{ color: '#991b1b', fontSize: '14px', marginTop: '8px', marginBottom: 0 }}>
+            This will instantly erase ALL of their production history, payroll records, advances, and payment data forever. This action absolutely CANNOT be undone.
+          </p>
+        </div>
+        <div className={styles.formActions}>
+          <button className={styles.cancelButton} onClick={() => { setConfirmDeleteId(null); setDeleteId(null); }}>Cancel</button>
+          <button
+            className={styles.primaryButton}
+            style={{ background: '#dc2626', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(220,38,38,0.3)' }}
             disabled={deleteLoading}
             onClick={handleDelete}
           >
-            {deleteLoading ? 'Deleting...' : '🗑 Yes, Delete'}
+            {deleteLoading ? 'Deleting...' : '🚨 YES, ERASE EVERYTHING'}
           </button>
         </div>
       </Modal>

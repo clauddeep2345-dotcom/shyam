@@ -94,6 +94,27 @@ export async function deleteWorker(id: string): Promise<{ error?: string }> {
   // Get old values for audit
   const { data: old } = await supabase.from('workers').select('*').eq('id', id).single();
 
+  if (old) {
+    // 1. Delete worker advances
+    await supabase.from('worker_advances').delete().eq('worker_id', id);
+    
+    // 2. Delete payment adjustments
+    await supabase.from('payment_adjustments').delete().eq('worker_id', id);
+    
+    // 3. Delete payment history
+    await supabase.from('payment_history').delete().eq('worker_id', id);
+    
+    // 4. Delete payroll record lines
+    await supabase.from('payroll_record_lines').delete().eq('worker_id', id);
+    
+    // 5. Delete payroll records
+    await supabase.from('payroll_records').delete().eq('worker_id', id);
+    
+    // 6. Delete production entries
+    await supabase.from('production_entries').delete().eq('worker_id', id);
+  }
+
+  // 7. Finally delete the worker
   const { error } = await supabase.from('workers').delete().eq('id', id);
 
   if (error) return { error: error.message };
