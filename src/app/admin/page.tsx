@@ -58,12 +58,19 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <h2 style={{ marginBottom: '16px', fontSize: '20px', color: '#1e293b' }}>Quick Actions</h2>
+      <h2 style={{ marginBottom: '16px', fontSize: '20px', color: '#1e293b', marginTop: '32px' }}>Quick Actions</h2>
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         <Link href="/admin/workers" style={{ padding: '12px 24px', background: '#3b82f6', color: 'white', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>👥 Manage Workers</Link>
         <Link href="/admin/machines" style={{ padding: '12px 24px', background: '#8b5cf6', color: 'white', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>⚙️ Machines & Rates</Link>
         <Link href="/admin/payroll" style={{ padding: '12px 24px', background: '#10b981', color: 'white', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>💰 Manage Payroll</Link>
         <Link href="/admin/production" style={{ padding: '12px 24px', background: '#f59e0b', color: 'white', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>🧵 Production Log</Link>
+      </div>
+
+      <h2 style={{ marginBottom: '16px', fontSize: '20px', color: '#1e293b', marginTop: '32px' }}>Data & Backup</h2>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <a href="/api/backup" download style={{ padding: '12px 24px', background: '#475569', color: 'white', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          💾 Export Full Database Backup (JSON)
+        </a>
       </div>
     </div>
   );
