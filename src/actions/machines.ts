@@ -12,7 +12,16 @@ export async function getMachines(activeOnly: boolean = false): Promise<Machine[
   if (activeOnly) query = query.eq('active', true);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data || []) as Machine[];
+  
+  const machines = (data || []) as Machine[];
+  machines.sort((a, b) => {
+    const aNum = parseInt(a.machine_number, 10);
+    const bNum = parseInt(b.machine_number, 10);
+    if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum;
+    return a.machine_number.localeCompare(b.machine_number);
+  });
+  
+  return machines;
 }
 
 export async function getMachineById(id: string): Promise<Machine | null> {
@@ -126,8 +135,17 @@ export async function getMachinesWithCurrentRate(): Promise<(Machine & { current
     }
   }
 
-  return (machines as Machine[]).map(m => ({
+  const result = (machines as Machine[]).map(m => ({
     ...m,
     current_rate: rateMap.get(m.id) ?? null,
   }));
+  
+  result.sort((a, b) => {
+    const aNum = parseInt(a.machine_number, 10);
+    const bNum = parseInt(b.machine_number, 10);
+    if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum;
+    return a.machine_number.localeCompare(b.machine_number);
+  });
+  
+  return result;
 }
