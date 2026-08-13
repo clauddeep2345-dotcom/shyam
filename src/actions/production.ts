@@ -18,7 +18,7 @@ export async function createProductionEntry(params: {
   if (!user) return { error: 'Unauthorized' };
 
   // Validate production date is not in the future
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
   if (params.productionDate > today) {
     return { error: 'Production date cannot be in the future.' };
   }
@@ -90,7 +90,7 @@ export async function updateProductionEntry(
   // Supervisors can only edit their own same-day entries
   if (user.role === 'supervisor') {
     if (existing.entered_by !== user.id) return { error: 'You can only edit your own entries.' };
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     if (existing.entry_date !== today) {
       return { error: 'You can only edit entries made today. Contact Admin.' };
     }
@@ -158,7 +158,7 @@ export async function softDeleteProductionEntry(id: string): Promise<{ error?: s
   // Supervisors: same-day only
   if (user.role === 'supervisor') {
     if (existing.entered_by !== user.id) return { error: 'You can only delete your own entries.' };
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     if (existing.entry_date !== today) {
       return { error: 'You can only delete entries made today. Contact Admin.' };
     }

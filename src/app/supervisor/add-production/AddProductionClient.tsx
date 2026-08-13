@@ -102,7 +102,7 @@ export default function AddProductionClient({ workers, machines, userId }: Props
             type="date" 
             value={productionDate} 
             onChange={e => setProductionDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
+            max={format(new Date(), 'yyyy-MM-dd')}
             required
             className={styles.input}
             disabled={isSubmitting}
