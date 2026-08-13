@@ -15,6 +15,7 @@ const adminLinks = [
   { href: '/admin/workers', label: 'Workers', icon: '👥' },
   { href: '/admin/machines', label: 'Machines', icon: '⚙️' },
   { href: '/admin/production', label: 'Production', icon: '🧵' },
+  { href: '/admin/add-production', label: 'Add Production', icon: '➕' },
   { href: '/admin/payroll', label: 'Payroll', icon: '💰' },
   { href: '/admin/reports/workers', label: 'Worker Report', icon: '📋' },
   { href: '/admin/reports/machines', label: 'Machine Report', icon: '📈' },
