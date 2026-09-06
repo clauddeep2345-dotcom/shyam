@@ -112,21 +112,18 @@ export async function updateMachine(id: string, updates: MachineUpdate): Promise
 
 export async function getMachinesWithCurrentRate(): Promise<(Machine & { current_rate: number | null })[]> {
   const supabase = await createClient();
-
-  const { data: machines } = await supabase
-    .from('machines')
-    .select('*')
-    .order('machine_number');
-
-  if (!machines) return [];
-
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
-  const { data: rates } = await supabase
-    .from('machine_rates')
-    .select('machine_id, rate_per_meter')
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`);
+  const [{ data: machines }, { data: rates }] = await Promise.all([
+    supabase.from('machines').select('*').order('machine_number'),
+    supabase
+      .from('machine_rates')
+      .select('machine_id, rate_per_meter')
+      .lte('effective_from', today)
+      .or(`effective_to.is.null,effective_to.gte.${today}`),
+  ]);
+
+  if (!machines) return [];
 
   const rateMap = new Map<string, number>();
   if (rates) {

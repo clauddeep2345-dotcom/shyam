@@ -25,11 +25,6 @@ export default async function WorkerMachineReportPage({
   const machineId = sp.machineId || '';
   const shift = sp.shift || '';
 
-  const [workers, machines] = await Promise.all([
-    getWorkers(false),
-    getMachines(false),
-  ]);
-
   const supabase = await createClient();
 
   let query = supabase
@@ -60,7 +55,11 @@ export default async function WorkerMachineReportPage({
     query = query.eq('shift', shift);
   }
 
-  const { data: entries } = await query;
+  const [workers, machines, { data: entries }] = await Promise.all([
+    getWorkers(false),
+    getMachines(false),
+    query,
+  ]);
 
   const serialized: ReportEntry[] = (entries || []).map((e: any) => ({
     id: e.id,

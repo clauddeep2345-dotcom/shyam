@@ -4,7 +4,6 @@ import { getWorkers } from '@/actions/workers';
 import { getMachines } from '@/actions/machines';
 import ProductionListClient from '@/components/ProductionListClient';
 import { subDays } from 'date-fns';
-import { createClient } from '@/lib/supabase/server';
 
 export default async function AdminProductionPage({
   searchParams,
@@ -14,9 +13,6 @@ export default async function AdminProductionPage({
   const params = await searchParams;
   const startDate = params.start || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(subDays(new Date(), 30));
   const endDate = params.end || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
   const [entries, workers, machines] = await Promise.all([
     getProductionEntries({ startDate, endDate }),
@@ -44,7 +40,6 @@ export default async function AdminProductionPage({
     <ProductionListClient
       initialEntries={serialized}
       title="Production Log"
-      currentUserId={user?.id}
       currentUserRole="admin"
       workers={workers.map(w => ({ id: w.id, name: w.name }))}
       machines={simplifiedMachines}

@@ -17,30 +17,29 @@ export default async function WorkerDetailPage({
 
   const supabase = await createClient();
 
-  // Get worker info
-  const { data: worker } = await supabase
-    .from('workers')
-    .select('id, name, active')
-    .eq('id', workerId)
-    .single();
+  const [{ data: worker }, { data: entries }] = await Promise.all([
+    supabase
+      .from('workers')
+      .select('id, name, active')
+      .eq('id', workerId)
+      .single(),
+    supabase
+      .from('production_entries')
+      .select(`
+        id,
+        production_date,
+        shift,
+        meters_produced,
+        machines(id, machine_number)
+      `)
+      .eq('worker_id', workerId)
+      .gte('production_date', startDate)
+      .lte('production_date', endDate)
+      .eq('is_deleted', false)
+      .order('production_date', { ascending: false }),
+  ]);
 
   if (!worker) notFound();
-
-  // Get all production entries for this worker in the date range
-  const { data: entries } = await supabase
-    .from('production_entries')
-    .select(`
-      id,
-      production_date,
-      shift,
-      meters_produced,
-      machines(id, machine_number)
-    `)
-    .eq('worker_id', workerId)
-    .gte('production_date', startDate)
-    .lte('production_date', endDate)
-    .eq('is_deleted', false)
-    .order('production_date', { ascending: false });
 
   const serialized = (entries || []).map((e: any) => ({
     id: e.id,

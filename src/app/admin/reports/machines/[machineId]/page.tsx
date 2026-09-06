@@ -18,30 +18,29 @@ export default async function MachineDetailPage({
 
   const supabase = await createClient();
 
-  // Get machine info
-  const { data: machine } = await supabase
-    .from('machines')
-    .select('id, machine_number, active')
-    .eq('id', machineId)
-    .single();
+  const [{ data: machine }, { data: entries }] = await Promise.all([
+    supabase
+      .from('machines')
+      .select('id, machine_number, active')
+      .eq('id', machineId)
+      .single(),
+    supabase
+      .from('production_entries')
+      .select(`
+        id,
+        production_date,
+        shift,
+        meters_produced,
+        workers(id, name)
+      `)
+      .eq('machine_id', machineId)
+      .gte('production_date', startDate)
+      .lte('production_date', endDate)
+      .eq('is_deleted', false)
+      .order('production_date', { ascending: false }),
+  ]);
 
   if (!machine) notFound();
-
-  // Get all production entries for this machine in the date range
-  const { data: entries } = await supabase
-    .from('production_entries')
-    .select(`
-      id,
-      production_date,
-      shift,
-      meters_produced,
-      workers(id, name)
-    `)
-    .eq('machine_id', machineId)
-    .gte('production_date', startDate)
-    .lte('production_date', endDate)
-    .eq('is_deleted', false)
-    .order('production_date', { ascending: false });
 
   const serialized = (entries || []).map((e: any) => ({
     id: e.id,

@@ -11,7 +11,7 @@ interface MachineData { id: string; machineNumber: string; currentRatePerMeter?:
 interface Props {
   workers: WorkerData[];
   machines: MachineData[];
-  userId: string;
+  userId?: string;
   // workerId -> array of assigned machineIds
   workerAssignments: Record<string, string[]>;
 }

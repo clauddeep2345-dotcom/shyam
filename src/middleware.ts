@@ -2,6 +2,35 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isLegacy = pathname.startsWith('/owner') || pathname.startsWith('/supervisor');
+  const isAdmin = pathname.startsWith('/admin');
+  const isLogin = pathname === '/login';
+  const isRoot = pathname === '/';
+
+  // Fast-path: Check for Supabase session cookies
+  const allCookies = request.cookies.getAll();
+  const hasAuthToken = allCookies.some(c => c.name.includes('-auth-token'));
+
+  // 1. If no session cookie exists at all:
+  if (!hasAuthToken) {
+    if (isAdmin || isLegacy) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    if (isRoot) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 2. If it's a Next.js prefetch request and session cookie exists, allow instantly
+  const isPrefetch = request.headers.get('purpose') === 'prefetch' ||
+                     request.headers.get('next-router-prefetch') === '1';
+  if (isPrefetch && isAdmin) {
+    return NextResponse.next();
+  }
+
+  // 3. For actual navigations with a session cookie, verify with Supabase SSR
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -24,38 +53,29 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { pathname } = request.nextUrl;
 
-  const isLegacyDashboard = pathname.startsWith('/owner') || pathname.startsWith('/supervisor');
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isLoginPage = pathname === '/login' || pathname === '/';
-
-  // If visiting legacy owner/supervisor routes, redirect to /admin
-  if (isLegacyDashboard) {
-    if (!user) {
+  // If session cookie is invalid or expired
+  if (!user) {
+    if (isAdmin || isLegacy || isRoot) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+    return supabaseResponse;
+  }
+
+  // User is authenticated
+  if (isLegacy || isLogin || isRoot) {
     return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  // If unauthenticated and trying to access protected admin route, redirect to /login
-  if (!user && isAdminRoute) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // If logged in and visiting login or root, redirect to /admin
-  if (user && isLoginPage) {
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  // If root unauthenticated, redirect to /login
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)'],
+  matcher: [
+    '/',
+    '/login',
+    '/admin/:path*',
+    '/owner/:path*',
+    '/supervisor/:path*',
+  ],
 };

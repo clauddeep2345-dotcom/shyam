@@ -5,14 +5,11 @@ import { getLiveDashboardStats } from '@/lib/dashboard';
 import LiveFactoryDashboard from '@/components/dashboard/LiveFactoryDashboard';
 
 export default async function AdminDashboard() {
-  const [stats, supabase] = await Promise.all([
-    getLiveDashboardStats(),
-    createClient(),
-  ]);
-
+  const supabase = await createClient();
   const monthStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
-  const [{ count: activeWorkers }, { data: monthEntries }] = await Promise.all([
+  const [stats, { count: activeWorkers }, { data: monthEntries }] = await Promise.all([
+    getLiveDashboardStats(),
     supabase.from('workers').select('id', { count: 'exact', head: true }).eq('active', true),
     supabase.from('production_entries').select('meters_produced').gte('production_date', monthStart).eq('is_deleted', false),
   ]);
