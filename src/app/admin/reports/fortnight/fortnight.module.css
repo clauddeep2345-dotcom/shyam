@@ -1,0 +1,374 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin: 4px 0 0 0;
+}
+
+/* Control Bar Card */
+.controlCard {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px 24px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.select, .monthInput {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.select:focus, .monthInput:focus {
+  border-color: #0ea5e9;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+/* Period Segmented Button */
+.periodSegment {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.segmentBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segmentActive {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btnSecondary {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* KPI Summary Cards */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.kpiCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpiCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.kpiGreen::before { background: #10b981; }
+.kpiBlue::before { background: #0ea5e9; }
+.kpiPurple::before { background: #8b5cf6; }
+.kpiAmber::before { background: #f59e0b; }
+
+.kpiLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.kpiSub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Matrix Table Card */
+.tableCard {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.tableHeaderBar {
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.tableTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.periodBadge {
+  font-size: 12.5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.matrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: right;
+}
+
+.matrixTable th,
+.matrixTable td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.matrixTable th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Sticky Machine Column */
+.machineColHeader {
+  position: sticky;
+  left: 0;
+  background: #f8fafc !important;
+  z-index: 2;
+  text-align: left !important;
+  min-width: 120px;
+  border-right: 2px solid #cbd5e1 !important;
+}
+
+.machineColCell {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 1;
+  text-align: left !important;
+  font-weight: 700;
+  color: #0f172a;
+  border-right: 2px solid #cbd5e1 !important;
+}
+
+/* Sticky Total Column */
+.totalColHeader {
+  position: sticky;
+  right: 0;
+  background: #f8fafc !important;
+  z-index: 2;
+  font-weight: 800;
+  color: #0f172a;
+  border-left: 2px solid #cbd5e1 !important;
+}
+
+.totalColCell {
+  position: sticky;
+  right: 0;
+  background: #f8fafc;
+  z-index: 1;
+  font-weight: 800;
+  color: #0f172a;
+  border-left: 2px solid #cbd5e1 !important;
+}
+
+.cellMuted {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.cellActive {
+  color: #0f172a;
+  font-weight: 600;
+  background: #f0fdf4;
+}
+
+.cellTooltip {
+  position: relative;
+  cursor: help;
+}
+
+.footerRow {
+  background: #f1f5f9;
+  font-weight: 800;
+}
+
+.footerRow td {
+  border-top: 2px solid #94a3b8;
+  border-bottom: none;
+}
+
+.grandTotalCell {
+  color: #059669 !important;
+  font-size: 15px !important;
+  background: #ecfdf5 !important;
+}
+
+.emptyState {
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyIcon {
+  font-size: 40px;
+}
+
+/* Print Only Styles */
+@media print {
+  :global(body) {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .controlCard,
+  .actionButtons,
+  .kpiGrid,
+  :global(header),
+  :global(aside),
+  :global(nav) {
+    display: none !important;
+  }
+
+  .tableCard {
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+  }
+
+  .matrixTable th,
+  .matrixTable td {
+    border: 1px solid #000000 !important;
+    padding: 6px !important;
+    font-size: 11px !important;
+  }
+
+  .machineColCell,
+  .machineColHeader,
+  .totalColCell,
+  .totalColHeader {
+    position: static !important;
+  }
+}

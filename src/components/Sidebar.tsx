@@ -17,6 +17,7 @@ const navLinks = [
   { href: '/admin/add-production', label: 'Add Production', icon: '➕' },
   { href: '/admin/bulk-production', label: 'Bulk Entry', icon: '🗂️' },
   { href: '/admin/production', label: 'Production', icon: '🧵' },
+  { href: '/admin/reports/fortnight', label: '15-Day Sheet', icon: '📅' },
   { href: '/admin/reports/shifts', label: 'Shift Comparison', icon: '⚖️' },
   { href: '/admin/reports/workers', label: 'Worker Report', icon: '📋' },
   { href: '/admin/reports/machines', label: 'Machine Report', icon: '📈' },

@@ -75,6 +75,9 @@ export default async function AdminDashboard() {
         <Link href="/admin/production" style={{ padding: '12px 20px', background: '#f59e0b', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '14px', boxShadow: '0 2px 4px rgba(245,158,11,0.2)' }}>
           🧵 Production Log
         </Link>
+        <Link href="/admin/reports/fortnight" style={{ padding: '12px 20px', background: '#059669', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '14px', boxShadow: '0 2px 4px rgba(5,150,105,0.2)' }}>
+          📅 15-Day Worker Sheet
+        </Link>
         <Link href="/admin/reports/worker-machine" style={{ padding: '12px 20px', background: '#0f172a', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '14px', boxShadow: '0 2px 4px rgba(15,23,42,0.2)' }}>
           🔍 Worker-Machine Report
         </Link>
