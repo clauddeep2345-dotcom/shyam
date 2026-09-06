@@ -1,7 +1,7 @@
 import React from 'react';
 import { getWorkers } from '@/actions/workers';
 import { getMachines } from '@/actions/machines';
-import AddProductionClient from '@/app/supervisor/add-production/AddProductionClient';
+import AddProductionClient from '@/components/AddProductionClient';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function AdminAddProductionPage() {

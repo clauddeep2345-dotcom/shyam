@@ -37,8 +37,7 @@ export async function login(email: string, password: string): Promise<{ error?: 
     userData = userByEmail;
   }
 
-  const role = userData?.role || 'admin';
-  redirect(`/${role}`);
+  redirect('/admin');
 }
 
 /**

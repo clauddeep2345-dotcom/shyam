@@ -7,10 +7,10 @@ import { logout } from '@/actions/auth';
 import styles from './sidebar.module.css';
 
 interface SidebarProps {
-  role: 'admin' | 'owner' | 'supervisor';
+  role?: string;
 }
 
-const adminLinks = [
+const navLinks = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
   { href: '/admin/workers', label: 'Workers', icon: '👥' },
   { href: '/admin/machines', label: 'Machines', icon: '⚙️' },
@@ -23,25 +23,9 @@ const adminLinks = [
   { href: '/admin/reports/worker-machine', label: 'Worker-Machine', icon: '🔍' },
 ];
 
-const ownerLinks = [
-  { href: '/owner', label: 'Dashboard', icon: '📊' },
-  { href: '/owner/production', label: 'Production', icon: '🧵' },
-  { href: '/admin/reports/shifts', label: 'Shift Comparison', icon: '⚖️' },
-  { href: '/admin/reports/worker-machine', label: 'Worker-Machine', icon: '🔍' },
-];
-
-const supervisorLinks = [
-  { href: '/supervisor', label: 'Dashboard', icon: '📊' },
-  { href: '/supervisor/add-production', label: 'Add Production', icon: '➕' },
-  { href: '/supervisor/bulk-production', label: 'Bulk Entry', icon: '🗂️' },
-  { href: '/supervisor/recent', label: 'Recent Entries', icon: '📝' },
-];
-
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({ role = 'admin' }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-
-  const links = role === 'admin' ? adminLinks : role === 'owner' ? ownerLinks : supervisorLinks;
 
   // Close sidebar when route changes (mobile navigation)
   useEffect(() => {
@@ -78,7 +62,7 @@ export default function Sidebar({ role }: SidebarProps) {
         <span className={styles.mobileBrand}>SHYAM TEXTILE</span>
         <span className={styles.mobileRoleBadge}>
           <span className={styles.statusDot} style={{ display: 'inline-block', marginRight: '4px' }} />
-          {role.toUpperCase()}
+          ADMIN
         </span>
       </header>
 
@@ -105,7 +89,7 @@ export default function Sidebar({ role }: SidebarProps) {
             <h2 className={styles.brandName}>SHYAM TEXTILE</h2>
             <div className={styles.roleBadge}>
               <span className={styles.statusDot} />
-              <span>{role.toUpperCase()}</span>
+              <span>ADMIN</span>
             </div>
           </div>
         </div>
@@ -121,8 +105,8 @@ export default function Sidebar({ role }: SidebarProps) {
 
         <nav className={styles.nav}>
           <ul>
-            {links.map((link) => {
-              const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== `/${role}`);
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/admin');
               return (
                 <li key={link.href}>
                   <Link href={link.href} className={`${styles.link} ${isActive ? styles.active : ''}`}>

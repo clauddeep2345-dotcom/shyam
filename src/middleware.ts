@@ -24,47 +24,31 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
 
-  const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/supervisor');
+  const isLegacyDashboard = pathname.startsWith('/owner') || pathname.startsWith('/supervisor');
+  const isAdminRoute = pathname.startsWith('/admin');
   const isLoginPage = pathname === '/login' || pathname === '/';
 
-  if (!user && isProtected) {
+  // If visiting legacy owner/supervisor routes, redirect to /admin
+  if (isLegacyDashboard) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  // If unauthenticated and trying to access protected admin route, redirect to /login
+  if (!user && isAdminRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // If logged in and visiting login or root, redirect to /admin
   if (user && isLoginPage) {
-    // Look up role
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    const role = userData?.role || 'admin';
-    return NextResponse.redirect(new URL(`/${role}`, request.url));
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  // Role-based route protection
-  if (user && isProtected) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    const role = (userData?.role || 'admin') as string;
-
-    if (pathname.startsWith('/admin') && role !== 'admin') {
-      return NextResponse.redirect(new URL(`/${role}`, request.url));
-    }
-    if (pathname.startsWith('/owner') && role !== 'owner') {
-      return NextResponse.redirect(new URL(`/${role}`, request.url));
-    }
-    if (pathname.startsWith('/supervisor') && role !== 'supervisor') {
-      return NextResponse.redirect(new URL(`/${role}`, request.url));
-    }
-  }
-
+  // If root unauthenticated, redirect to /login
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/login', request.url));
   }

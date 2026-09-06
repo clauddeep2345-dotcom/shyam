@@ -160,7 +160,7 @@ export default function AddProductionClient({ workers, machines, userId }: Props
               <strong>{shift === 'day' ? 'Day' : 'Night'} Shift</strong> record of{' '}
               <strong>{existingNotice.metersProduced.toFixed(2)} m</strong> (by {existingNotice.workerName}) on this date.
               <div className={styles.noticeSub}>
-                Submitting will log an additional entry for this shift. If you wish to edit the previous entry instead, please use Recent Entries.
+                Submitting will log an additional entry for this shift. If you wish to edit the previous entry instead, please use Production Logs.
               </div>
             </div>
           </div>
