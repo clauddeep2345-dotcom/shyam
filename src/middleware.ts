@@ -57,14 +57,18 @@ export async function middleware(request: NextRequest) {
   // If session cookie is invalid or expired
   if (!user) {
     if (isAdmin || isLegacy || isRoot) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const redirectRes = NextResponse.redirect(new URL('/login', request.url));
+      supabaseResponse.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, c));
+      return redirectRes;
     }
     return supabaseResponse;
   }
 
   // User is authenticated
   if (isLegacy || isLogin || isRoot) {
-    return NextResponse.redirect(new URL('/admin', request.url));
+    const redirectRes = NextResponse.redirect(new URL('/admin', request.url));
+    supabaseResponse.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, c));
+    return redirectRes;
   }
 
   return supabaseResponse;

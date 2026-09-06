@@ -56,6 +56,7 @@ export async function createProductionEntry(params: {
   });
 
   revalidatePath('/admin/production');
+  revalidatePath('/admin');
   return { id: data!.id };
 }
 
@@ -126,6 +127,7 @@ export async function updateProductionEntry(
   });
 
   revalidatePath('/admin/production');
+  revalidatePath('/admin');
   return {};
 }
 
@@ -172,6 +174,7 @@ export async function softDeleteProductionEntry(id: string): Promise<{ error?: s
   });
 
   revalidatePath('/admin/production');
+  revalidatePath('/admin');
   return {};
 }
 
