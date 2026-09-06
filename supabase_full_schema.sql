@@ -387,5 +387,24 @@ SELECT
 FROM auth.users
 ON CONFLICT (id) DO NOTHING;
 
+-- Seed Machines 1 to 64 and A to D
+INSERT INTO public.machines (machine_number, name, active)
+SELECT 
+  s::TEXT AS machine_number,
+  s::TEXT AS name,
+  true AS active
+FROM generate_series(1, 64) AS s
+ON CONFLICT (machine_number) DO NOTHING;
+
+INSERT INTO public.machines (machine_number, name, active)
+VALUES 
+  ('A', 'A', true),
+  ('B', 'B', true),
+  ('C', 'C', true),
+  ('D', 'D', true)
+ON CONFLICT (machine_number) DO NOTHING;
+
 -- Verification notice
 SELECT count(*) AS total_synced_users FROM public.users;
+SELECT count(*) AS total_machines FROM public.machines;
+

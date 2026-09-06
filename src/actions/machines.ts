@@ -18,6 +18,8 @@ export async function getMachines(activeOnly: boolean = false): Promise<Machine[
     const aNum = parseInt(a.machine_number, 10);
     const bNum = parseInt(b.machine_number, 10);
     if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum;
+    if (!isNaN(aNum) && isNaN(bNum)) return -1;
+    if (isNaN(aNum) && !isNaN(bNum)) return 1;
     return a.machine_number.localeCompare(b.machine_number);
   });
   
@@ -141,6 +143,8 @@ export async function getMachinesWithCurrentRate(): Promise<(Machine & { current
     const aNum = parseInt(a.machine_number, 10);
     const bNum = parseInt(b.machine_number, 10);
     if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum;
+    if (!isNaN(aNum) && isNaN(bNum)) return -1;
+    if (isNaN(aNum) && !isNaN(bNum)) return 1;
     return a.machine_number.localeCompare(b.machine_number);
   });
   
