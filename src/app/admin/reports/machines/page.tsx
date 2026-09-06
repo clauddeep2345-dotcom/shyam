@@ -18,7 +18,6 @@ export default async function MachineReportPage({
     .from('production_entries')
     .select(`
       meters_produced,
-      amount,
       machines!inner(id, machine_number, name)
     `)
     .gte('production_date', startDate)
@@ -26,13 +25,12 @@ export default async function MachineReportPage({
     .eq('is_deleted', false);
 
   // Group by machine
-  const machineMap = new Map<string, { id: string; machineNumber: string; name: string; totalMeters: number; totalAmount: number; entries: number }>();
+  const machineMap = new Map<string, { id: string; machineNumber: string; name: string; totalMeters: number; entries: number }>();
   (entries || []).forEach((e: any) => {
     const machineId = e.machines.id;
     const existing = machineMap.get(machineId);
     if (existing) {
       existing.totalMeters += Number(e.meters_produced);
-      existing.totalAmount += Number(e.amount);
       existing.entries += 1;
     } else {
       machineMap.set(machineId, {
@@ -40,7 +38,6 @@ export default async function MachineReportPage({
         machineNumber: e.machines.machine_number,
         name: e.machines.name || '',
         totalMeters: Number(e.meters_produced),
-        totalAmount: Number(e.amount),
         entries: 1,
       });
     }

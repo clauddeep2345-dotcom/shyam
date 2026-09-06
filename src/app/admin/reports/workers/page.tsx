@@ -19,7 +19,6 @@ export default async function WorkerReportPage({
     .from('production_entries')
     .select(`
       meters_produced,
-      amount,
       workers!inner(id, name)
     `)
     .gte('production_date', startDate)
@@ -27,21 +26,19 @@ export default async function WorkerReportPage({
     .eq('is_deleted', false);
 
   // Group by worker
-  const workerMap = new Map<string, { id: string; name: string; totalMeters: number; totalAmount: number; entries: number }>();
+  const workerMap = new Map<string, { id: string; name: string; totalMeters: number; entries: number }>();
   (entries || []).forEach((e: any) => {
     const workerId = e.workers.id;
     const workerName = e.workers.name;
     const existing = workerMap.get(workerId);
     if (existing) {
       existing.totalMeters += Number(e.meters_produced);
-      existing.totalAmount += Number(e.amount);
       existing.entries += 1;
     } else {
       workerMap.set(workerId, {
         id: workerId,
         name: workerName,
         totalMeters: Number(e.meters_produced),
-        totalAmount: Number(e.amount),
         entries: 1,
       });
     }

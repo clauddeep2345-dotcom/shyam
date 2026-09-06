@@ -32,10 +32,9 @@ export default async function WorkerDetailPage({
     .select(`
       id,
       production_date,
+      shift,
       meters_produced,
-      rate_applied,
-      amount,
-      machines(id, machine_number, name)
+      machines(id, machine_number)
     `)
     .eq('worker_id', workerId)
     .gte('production_date', startDate)
@@ -46,11 +45,10 @@ export default async function WorkerDetailPage({
   const serialized = (entries || []).map((e: any) => ({
     id: e.id,
     productionDate: e.production_date,
+    shift: (e.shift as 'day' | 'night') || 'day',
     metersProduced: Number(e.meters_produced),
-    rateApplied: Number(e.rate_applied),
-    amount: Number(e.amount),
+    machineId: e.machines?.id || '',
     machineNumber: e.machines?.machine_number || '—',
-    machineName: e.machines?.name || '',
   }));
 
   return (

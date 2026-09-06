@@ -63,6 +63,7 @@ export interface ProductionEntry {
   machine_id: string;
   meters_produced: number;
   production_date: string;
+  shift?: 'day' | 'night';
   entry_date: string;
   rate_applied: number;
   amount: number;

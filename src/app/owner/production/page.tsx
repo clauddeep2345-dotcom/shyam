@@ -21,10 +21,9 @@ export default async function OwnerProductionPage({
   const serialized = entries.map(e => ({
     id: e.id,
     productionDate: e.production_date,
+    shift: (e as any).shift || 'day',
     entryDate: e.entry_date,
     meters: String(e.meters_produced),
-    ratePerMeter: String(e.rate_applied),
-    amount: String(e.amount),
     worker: { id: (e as any).workers?.id || '', name: (e as any).workers?.name || '' },
     machine: { id: (e as any).machines?.id || '', machineNumber: (e as any).machines?.machine_number || '' },
     enteredBy: e.entered_by,

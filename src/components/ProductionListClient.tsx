@@ -10,10 +10,9 @@ import { updateProductionEntry, softDeleteProductionEntry } from '@/actions/prod
 interface Entry {
   id: string;
   productionDate: string;
+  shift?: string;
   entryDate: string;
   meters: string;
-  ratePerMeter: string;
-  amount: string;
   worker: { id?: string; name: string };
   machine: { id?: string; machineNumber: string };
   enteredBy?: string; // user id who entered
@@ -26,29 +25,26 @@ interface Props {
   currentUserRole?: 'admin' | 'supervisor' | 'owner';
   // For edit modal
   workers?: { id: string; name: string }[];
-  machines?: { id: string; machineNumber: string; currentRatePerMeter?: number }[];
+  machines?: { id: string; machineNumber: string }[];
 }
 
 function downloadCSV(entries: Entry[], title: string) {
-  const headers = ['Production Date', 'Entry Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
+  const headers = ['Production Date', 'Shift', 'Entry Date', 'Worker', 'Machine', 'Meters'];
   const rows = entries.map(e => [
     e.productionDate,
+    e.shift && e.shift.toLowerCase() === 'night' ? 'Night' : 'Day',
     e.entryDate || '',
     e.worker.name,
     e.machine.machineNumber,
-    parseFloat(e.ratePerMeter).toFixed(3),
     parseFloat(e.meters).toFixed(2),
-    parseFloat(e.amount).toFixed(2),
   ]);
   const totalMeters = entries.reduce((s, e) => s + parseFloat(e.meters), 0);
-  const totalAmount = entries.reduce((s, e) => s + parseFloat(e.amount), 0);
 
   const csvContent = [
     headers.join(','),
     ...rows.map(r => r.join(',')),
     '',
     `Total Meters,${totalMeters.toFixed(2)}`,
-    `Total Amount (₹),${totalAmount.toFixed(2)}`,
   ].join('\n');
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -62,18 +58,16 @@ function downloadCSV(entries: Entry[], title: string) {
 
 function downloadPDF(entries: Entry[], title: string) {
   const totalMeters = entries.reduce((s, e) => s + parseFloat(e.meters), 0);
-  const totalAmount = entries.reduce((s, e) => s + parseFloat(e.amount), 0);
   const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const rows = entries.map(e => `
     <tr>
       <td>${format(new Date(e.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+      <td><strong>${e.shift && e.shift.toLowerCase() === 'night' ? '🌙 Night' : '☀️ Day'}</strong></td>
       <td>${e.entryDate ? format(new Date(e.entryDate + 'T00:00:00'), 'dd MMM yyyy') : '—'}</td>
       <td>${e.worker.name}</td>
       <td>${e.machine.machineNumber}</td>
-      <td>${parseFloat(e.ratePerMeter).toFixed(3)}</td>
-      <td>${parseFloat(e.meters).toFixed(2)}</td>
-      <td>₹${parseFloat(e.amount).toFixed(2)}</td>
+      <td>${parseFloat(e.meters).toFixed(2)} m</td>
     </tr>
   `).join('');
 
@@ -108,19 +102,17 @@ function downloadPDF(entries: Entry[], title: string) {
     <thead>
       <tr>
         <th>Production Date</th>
+        <th>Shift</th>
         <th>Entry Date</th>
         <th>Worker</th>
         <th>Machine</th>
-        <th>Rate (₹/m)</th>
         <th>Meters</th>
-        <th>Amount (₹)</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="totals">
     <div class="total-item"><label>Total Meters</label><span>${totalMeters.toFixed(2)} m</span></div>
-    <div class="total-item"><label>Total Value</label><span>₹${totalAmount.toFixed(2)}</span></div>
     <div class="total-item"><label>Total Entries</label><span>${entries.length}</span></div>
   </div>
   <script>window.onload = function(){ window.print(); }</script>
@@ -161,6 +153,7 @@ export default function ProductionListClient({
   const [editWorker, setEditWorker] = useState('');
   const [editMachine, setEditMachine] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editShift, setEditShift] = useState<'day' | 'night'>('day');
   const [editMeters, setEditMeters] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -179,13 +172,13 @@ export default function ProductionListClient({
   };
 
   const totalMeters = entries.reduce((sum, e) => sum + parseFloat(e.meters), 0);
-  const totalAmount = entries.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
   const openEdit = (entry: Entry) => {
     setEditEntry(entry);
     setEditWorker(entry.worker.id || '');
     setEditMachine(entry.machine.id || '');
     setEditDate(entry.productionDate);
+    setEditShift((entry.shift as any) === 'night' ? 'night' : 'day');
     setEditMeters(parseFloat(entry.meters).toString());
     setEditError('');
     setIsEditOpen(true);
@@ -205,6 +198,7 @@ export default function ProductionListClient({
       workerId: editWorker || undefined,
       machineId: editMachine || undefined,
       productionDate: editDate || undefined,
+      shift: editShift,
       metersProduced: m,
     });
     if (result.error) {
@@ -217,12 +211,11 @@ export default function ProductionListClient({
       if (en.id !== editEntry.id) return en;
       const workerObj = workers.find(w => w.id === editWorker);
       const machineObj = machines.find(mc => mc.id === editMachine);
-      const rate = machineObj?.currentRatePerMeter ?? parseFloat(en.ratePerMeter);
       return {
         ...en,
         productionDate: editDate || en.productionDate,
+        shift: editShift,
         meters: m.toString(),
-        amount: (m * rate).toFixed(2),
         worker: { id: editWorker, name: workerObj?.name || en.worker.name },
         machine: { id: editMachine, machineNumber: machineObj?.machineNumber || en.machine.machineNumber },
       };
@@ -290,10 +283,6 @@ export default function ProductionListClient({
           <div style={{ fontSize: '11px', color: '#166534', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Meters</div>
           <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#15803d', wordBreak: 'break-all' }}>{totalMeters.toFixed(2)} m</div>
         </div>
-        <div style={{ background: '#eff6ff', padding: '14px 20px', borderRadius: '10px', border: '1px solid #bfdbfe', flex: '1 1 130px', minWidth: '0' }}>
-          <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Value</div>
-          <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2563eb', wordBreak: 'break-all' }}>₹{totalAmount.toFixed(2)}</div>
-        </div>
         <div style={{ background: '#f8fafc', padding: '14px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', flex: '1 1 130px', minWidth: '0' }}>
           <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Entries</div>
           <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#0f172a' }}>{entries.length}</div>
@@ -306,12 +295,11 @@ export default function ProductionListClient({
           <thead>
             <tr>
               <th>Production Date</th>
+              <th>Shift</th>
               <th>Entry Date</th>
               <th>Worker</th>
               <th>Machine</th>
-              <th>Rate (₹/m)</th>
               <th>Meters</th>
-              <th>Amount (₹)</th>
               {canEditDelete && <th>Actions</th>}
             </tr>
           </thead>
@@ -319,14 +307,27 @@ export default function ProductionListClient({
             {entries.map(entry => (
               <tr key={entry.id}>
                 <td style={{ fontWeight: 600 }}>{format(new Date(entry.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+                <td>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    background: entry.shift === 'night' ? '#f3e8ff' : '#e0f2fe',
+                    color: entry.shift === 'night' ? '#6b21a8' : '#0369a1',
+                  }}>
+                    {entry.shift === 'night' ? '🌙 Night' : '☀️ Day'}
+                  </span>
+                </td>
                 <td style={{ color: '#64748b', fontSize: '13px' }}>
                   {entry.entryDate ? format(new Date(entry.entryDate + 'T00:00:00'), 'dd MMM yyyy') : '—'}
                 </td>
                 <td>{entry.worker.name}</td>
-                <td>{entry.machine.machineNumber}</td>
-                <td>{parseFloat(entry.ratePerMeter).toFixed(3)}</td>
-                <td style={{ fontWeight: 600 }}>{parseFloat(entry.meters).toFixed(2)}</td>
-                <td style={{ fontWeight: 600, color: '#16a34a' }}>{parseFloat(entry.amount).toFixed(2)}</td>
+                <td style={{ fontWeight: 600 }}>{entry.machine.machineNumber}</td>
+                <td style={{ fontWeight: 600, color: '#0284c7' }}>{parseFloat(entry.meters).toFixed(2)} m</td>
                 {canEditDelete && (
                   <td>
                     {workers.length > 0 && (
@@ -344,7 +345,7 @@ export default function ProductionListClient({
             ))}
             {entries.length === 0 && (
               <tr>
-                <td colSpan={canEditDelete ? 8 : 7} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                <td colSpan={canEditDelete ? 7 : 6} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
                   No production records found for this period.
                 </td>
               </tr>
@@ -377,6 +378,44 @@ export default function ProductionListClient({
               </select>
             </div>
           )}
+
+          <div className={tableStyles.formGroup}>
+            <label>Shift</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setEditShift('day')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: editShift === 'day' ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                  background: editShift === 'day' ? '#e0f2fe' : '#f8fafc',
+                  color: editShift === 'day' ? '#0369a1' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                ☀️ Day Shift
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditShift('night')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: editShift === 'night' ? '2px solid #7c3aed' : '1px solid #cbd5e1',
+                  background: editShift === 'night' ? '#f3e8ff' : '#f8fafc',
+                  color: editShift === 'night' ? '#6b21a8' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                🌙 Night Shift
+              </button>
+            </div>
+          </div>
 
           <div className={tableStyles.formGroup}>
             <label>Production Date</label>

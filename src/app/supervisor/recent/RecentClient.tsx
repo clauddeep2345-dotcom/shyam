@@ -9,12 +9,11 @@ import { updateProductionEntry, softDeleteProductionEntry } from '@/actions/prod
 interface Entry {
   id: string;
   productionDate: string;
+  shift?: 'day' | 'night';
   entryDate: string;
   meters: string;
-  ratePerMeter: string;
-  amount: string;
   worker: { id: string; name: string };
-  machine: { id: string; machineNumber: string; currentRatePerMeter?: number };
+  machine: { id: string; machineNumber: string };
   enteredBy: string;
 }
 
@@ -22,29 +21,26 @@ interface Props {
   initialEntries: Entry[];
   currentUserId: string;
   workers: { id: string; name: string }[];
-  machines: { id: string; machineNumber: string; currentRatePerMeter?: number }[];
+  machines: { id: string; machineNumber: string }[];
 }
 
 function downloadCSV(entries: Entry[]) {
-  const headers = ['Production Date', 'Entry Date', 'Worker', 'Machine', 'Rate (₹/m)', 'Meters', 'Amount (₹)'];
+  const headers = ['Production Date', 'Shift', 'Entry Date', 'Worker', 'Machine', 'Meters'];
   const rows = entries.map(e => [
     e.productionDate,
+    e.shift === 'night' ? 'Night' : 'Day',
     e.entryDate ? e.entryDate.split('T')[0] : '',
     e.worker.name,
     e.machine.machineNumber,
-    parseFloat(e.ratePerMeter).toFixed(3),
     parseFloat(e.meters).toFixed(2),
-    parseFloat(e.amount).toFixed(2),
   ]);
   const totalMeters = entries.reduce((s, e) => s + parseFloat(e.meters), 0);
-  const totalAmount = entries.reduce((s, e) => s + parseFloat(e.amount), 0);
 
   const csvContent = [
     headers.join(','),
     ...rows.map(r => r.join(',')),
     '',
-    `Total Meters,${totalMeters.toFixed(2)}`,
-    `Total Amount (₹),${totalAmount.toFixed(2)}`,
+    `Total Meters,,,,,${totalMeters.toFixed(2)}`,
   ].join('\n');
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -66,6 +62,7 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
   const [editWorker, setEditWorker] = useState('');
   const [editMachine, setEditMachine] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editShift, setEditShift] = useState<'day' | 'night'>('day');
   const [editMeters, setEditMeters] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -82,6 +79,7 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
     setEditWorker(entry.worker.id);
     setEditMachine(entry.machine.id);
     setEditDate(entry.productionDate);
+    setEditShift(entry.shift || 'day');
     setEditMeters(parseFloat(entry.meters).toString());
     setEditError('');
     setIsEditOpen(true);
@@ -101,6 +99,7 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
       workerId: editWorker || undefined,
       machineId: editMachine || undefined,
       productionDate: editDate || undefined,
+      shift: editShift,
       metersProduced: m,
     });
     if (result.error) {
@@ -112,12 +111,11 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
       if (en.id !== editEntry.id) return en;
       const workerObj = workers.find(w => w.id === editWorker);
       const machineObj = machines.find(mc => mc.id === editMachine);
-      const rate = machineObj?.currentRatePerMeter ?? parseFloat(en.ratePerMeter);
       return {
         ...en,
         productionDate: editDate || en.productionDate,
+        shift: editShift,
         meters: m.toString(),
-        amount: (m * rate).toFixed(2),
         worker: { id: editWorker, name: workerObj?.name || en.worker.name },
         machine: { id: editMachine, machineNumber: machineObj?.machineNumber || en.machine.machineNumber },
       };
@@ -141,7 +139,6 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
   };
 
   const totalMeters = entries.reduce((s, e) => s + parseFloat(e.meters), 0);
-  const totalAmount = entries.reduce((s, e) => s + parseFloat(e.amount), 0);
 
   return (
     <div>
@@ -162,9 +159,9 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
           <div style={{ fontSize: '12px', color: '#166534', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Meters</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#15803d' }}>{totalMeters.toFixed(2)} m</div>
         </div>
-        <div style={{ background: '#eff6ff', padding: '16px 24px', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
-          <div style={{ fontSize: '12px', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Amount</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb' }}>₹{totalAmount.toFixed(2)}</div>
+        <div style={{ background: '#fdf4ff', padding: '16px 24px', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
+          <div style={{ fontSize: '12px', color: '#7e22ce', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Total Entries</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#7c3aed' }}>{entries.length}</div>
         </div>
       </div>
 
@@ -177,11 +174,11 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
           <thead>
             <tr>
               <th>Production Date</th>
+              <th>Shift</th>
               <th>Entry Time</th>
               <th>Worker</th>
               <th>Machine</th>
               <th>Meters</th>
-              <th>Amount (₹)</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -191,11 +188,26 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
               return (
                 <tr key={entry.id}>
                   <td style={{ fontWeight: 600 }}>{format(new Date(entry.productionDate + 'T00:00:00'), 'dd MMM yyyy')}</td>
+                  <td>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      background: entry.shift === 'night' ? '#ede9fe' : '#fef3c7',
+                      color: entry.shift === 'night' ? '#6d28d9' : '#b45309',
+                      border: `1px solid ${entry.shift === 'night' ? '#ddd6fe' : '#fde68a'}`
+                    }}>
+                      {entry.shift === 'night' ? '🌙 Night' : '☀️ Day'}
+                    </span>
+                  </td>
                   <td style={{ color: '#64748b' }}>{format(new Date(entry.entryDate), 'dd MMM HH:mm')}</td>
                   <td>{entry.worker.name}</td>
                   <td>{entry.machine.machineNumber}</td>
-                  <td style={{ fontWeight: 600 }}>{parseFloat(entry.meters).toFixed(2)}</td>
-                  <td style={{ fontWeight: 600, color: '#16a34a' }}>{parseFloat(entry.amount).toFixed(2)}</td>
+                  <td style={{ fontWeight: 600, color: '#0ea5e9' }}>{parseFloat(entry.meters).toFixed(2)} m</td>
                   <td>
                     {canAct ? (
                       <>
@@ -248,6 +260,13 @@ export default function RecentClient({ initialEntries, currentUserId, workers, m
           <div className={tableStyles.formGroup}>
             <label>Production Date</label>
             <input type="date" value={editDate} max={new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())} onChange={e => setEditDate(e.target.value)} required />
+          </div>
+          <div className={tableStyles.formGroup}>
+            <label>Shift</label>
+            <select value={editShift} onChange={e => setEditShift(e.target.value as 'day' | 'night')} required>
+              <option value="day">☀️ Day Shift</option>
+              <option value="night">🌙 Night Shift</option>
+            </select>
           </div>
           <div className={tableStyles.formGroup}>
             <label>Meters Produced</label>

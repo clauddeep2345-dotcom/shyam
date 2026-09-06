@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createProductionEntry } from '@/actions/production';
+import { createProductionEntry, getExistingEntriesForDateAndShift } from '@/actions/production';
 import { format } from 'date-fns';
+import styles from './bulkAddProduction.module.css';
 
 interface WorkerData { id: string; name: string; }
-interface MachineData { id: string; machineNumber: string; currentRatePerMeter: number; }
+interface MachineData { id: string; machineNumber: string; currentRatePerMeter?: number; }
 
 interface Props {
   workers: WorkerData[];
@@ -20,18 +21,36 @@ interface MachineRow {
   meters: string;
   status: 'idle' | 'success' | 'error' | 'skipped';
   errorMsg?: string;
-  savedAmount?: number;
 }
 
 export default function BulkAddProductionClient({ workers, machines, userId, workerAssignments }: Props) {
   const [productionDate, setProductionDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [shift, setShift] = useState<'day' | 'night'>('day');
   const [workerId, setWorkerId] = useState<string>('');
   const [machineRows, setMachineRows] = useState<MachineRow[]>([]);
+  const [existingEntriesMap, setExistingEntriesMap] = useState<Record<string, { metersProduced: number; workerName: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
   const [globalMessage, setGlobalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const firstInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch already logged entries for this date & shift to highlight duplicates
+  useEffect(() => {
+    let isCurrent = true;
+    if (productionDate && shift) {
+      getExistingEntriesForDateAndShift({ productionDate, shift })
+        .then(res => {
+          if (isCurrent) setExistingEntriesMap(res);
+        })
+        .catch(() => {
+          if (isCurrent) setExistingEntriesMap({});
+        });
+    } else {
+      setExistingEntriesMap({});
+    }
+    return () => { isCurrent = false; };
+  }, [productionDate, shift]);
 
   // When worker is selected, populate machine rows (filtered by assignment)
   useEffect(() => {
@@ -116,14 +135,15 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
           workerId,
           machineId: row.machine.id,
           productionDate,
+          shift,
           metersProduced: parsedMeters,
         });
-        return { machineId: row.machine.id, result, parsedMeters, rate: row.machine.currentRatePerMeter };
+        return { machineId: row.machine.id, result, parsedMeters };
       })
     );
 
     // Update row statuses
-    const updatedMap = new Map<string, { status: 'success' | 'error'; errorMsg?: string; savedAmount?: number }>();
+    const updatedMap = new Map<string, { status: 'success' | 'error'; errorMsg?: string }>();
     for (const r of results) {
       if (r.result.error) {
         errorCount++;
@@ -132,7 +152,6 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
         successCount++;
         updatedMap.set(r.machineId, {
           status: 'success',
-          savedAmount: Math.round(r.parsedMeters * r.rate * 100) / 100,
         });
       }
     }
@@ -140,7 +159,14 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
     setMachineRows(prev =>
       prev.map(row => {
         const update = updatedMap.get(row.machine.id);
-        if (update) return { ...row, ...update };
+        if (update) {
+          return {
+            ...row,
+            status: update.status,
+            errorMsg: update.errorMsg,
+            meters: update.status === 'success' ? '' : row.meters,
+          };
+        }
         return { ...row, status: 'skipped', meters: '' };
       })
     );
@@ -151,11 +177,13 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
     if (errorCount === 0) {
       setGlobalMessage({
         type: 'success',
-        text: `✅ ${successCount} entr${successCount === 1 ? 'y' : 'ies'} saved successfully!`,
+        text: `✓ Successfully saved ${successCount} entries (${shift === 'day' ? 'Day' : 'Night'} Shift)!`,
       });
+      // Refresh existing entries map
+      getExistingEntriesForDateAndShift({ productionDate, shift }).then(res => setExistingEntriesMap(res));
       // Reset after short delay
       setTimeout(() => {
-        setMachineRows(prev => prev.map(r => ({ ...r, meters: '', status: 'idle', errorMsg: undefined, savedAmount: undefined })));
+        setMachineRows(prev => prev.map(r => ({ ...r, meters: '', status: 'idle', errorMsg: undefined })));
         setSubmitDone(false);
         setGlobalMessage(null);
       }, 3000);
@@ -170,38 +198,19 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
   const selectedWorker = workers.find(w => w.id === workerId);
 
   return (
-    <div style={{ maxWidth: '800px', width: '100%' }}>
+    <div className={styles.container}>
       {/* Header Card */}
-      <div style={{
-        background: 'white',
-        borderRadius: '16px',
-        padding: '28px 32px',
-        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04)',
-        marginBottom: '20px',
-        border: '1px solid #e2e8f0',
-      }}>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+      <div className={styles.headerCard}>
+        <div className={styles.filterGrid}>
           {/* Worker Select */}
-          <div style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Worker
-            </label>
+          <div className={styles.fieldGroup} style={{ flex: '1 1 240px' }}>
+            <label className={styles.label}>Worker</label>
             <select
               value={workerId}
               onChange={e => setWorkerId(e.target.value)}
               disabled={isSubmitting}
-              style={{
-                padding: '14px 16px',
-                fontSize: '15px',
-                border: '1.5px solid #cbd5e1',
-                borderRadius: '10px',
-                background: '#f8fafc',
-                color: workerId ? '#0f172a' : '#94a3b8',
-                outline: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontWeight: workerId ? 600 : 400,
-              }}
+              className={styles.select}
+              style={{ fontWeight: workerId ? 600 : 400 }}
             >
               <option value="">— Select Worker —</option>
               {workers.map(w => (
@@ -211,60 +220,54 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
           </div>
 
           {/* Date */}
-          <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Production Date
-            </label>
+          <div className={styles.fieldGroup} style={{ flex: '1 1 180px' }}>
+            <label className={styles.label}>Production Date</label>
             <input
               type="date"
               value={productionDate}
               max={today}
               onChange={e => setProductionDate(e.target.value)}
               disabled={isSubmitting}
-              style={{
-                padding: '14px 16px',
-                fontSize: '15px',
-                border: '1.5px solid #cbd5e1',
-                borderRadius: '10px',
-                background: '#f8fafc',
-                color: '#0f172a',
-                outline: 'none',
-              }}
+              className={styles.input}
             />
+          </div>
+
+          {/* Shift */}
+          <div className={styles.fieldGroup} style={{ flex: '1 1 200px' }}>
+            <label className={styles.label}>Shift</label>
+            <div className={styles.shiftToggle}>
+              <button
+                type="button"
+                onClick={() => setShift('day')}
+                disabled={isSubmitting}
+                className={`${styles.shiftBtn} ${shift === 'day' ? styles.shiftBtnDayActive : ''}`}
+              >
+                ☀️ Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setShift('night')}
+                disabled={isSubmitting}
+                className={`${styles.shiftBtn} ${shift === 'night' ? styles.shiftBtnNightActive : ''}`}
+              >
+                🌙 Night
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Global Message */}
       {globalMessage && (
-        <div style={{
-          padding: '14px 20px',
-          borderRadius: '12px',
-          marginBottom: '16px',
-          fontWeight: 600,
-          fontSize: '15px',
-          background: globalMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
-          color: globalMessage.type === 'success' ? '#166534' : '#991b1b',
-          border: `1px solid ${globalMessage.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-        }}>
-          {globalMessage.text}
+        <div className={`${styles.alertMessage} ${globalMessage.type === 'success' ? styles.alertSuccess : styles.alertError}`}>
+          <span>{globalMessage.type === 'success' ? '✓' : '⚠️'}</span>
+          <span>{globalMessage.text}</span>
         </div>
       )}
 
       {/* No assignments warning */}
       {workerId && (workerAssignments[workerId] ?? []).length === 0 && (
-        <div style={{
-          padding: '12px 18px',
-          borderRadius: '10px',
-          marginBottom: '16px',
-          fontSize: '14px',
-          background: '#fffbeb',
-          color: '#92400e',
-          border: '1px solid #fde68a',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}>
+        <div className={styles.assignmentWarning}>
           <span style={{ fontSize: '18px' }}>⚠️</span>
           <span>
             <strong>{workers.find(w => w.id === workerId)?.name}</strong> has no machine assignments yet.
@@ -276,92 +279,59 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
       {/* Machine Rows — shown once worker is selected */}
       {workerId && machineRows.length > 0 && (
         <form onSubmit={handleSubmit}>
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04)',
-            border: '1px solid #e2e8f0',
-            overflow: 'hidden',
-            marginBottom: '20px',
-          }}>
+          <div className={styles.tableContainer}>
             {/* Table header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 140px 120px 120px',
-              padding: '12px 20px',
-              background: '#f1f5f9',
-              borderBottom: '1px solid #e2e8f0',
-              gap: '12px',
-            }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Machine</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rate (₹/m)</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Meters</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount</div>
+            <div className={styles.tableHeader}>
+              <div className={styles.tableHeaderCol}>Machine</div>
+              <div className={styles.tableHeaderCol} style={{ textAlign: 'right' }}>Meters Produced</div>
             </div>
 
             {/* Machine rows */}
             {machineRows.map((row, idx) => {
-              const parsedMeters = parseFloat(row.meters);
-              const previewAmount = !isNaN(parsedMeters) && parsedMeters > 0
-                ? Math.round(parsedMeters * row.machine.currentRatePerMeter * 100) / 100
-                : null;
-
               const rowBg =
                 row.status === 'success' ? '#f0fdf4' :
                 row.status === 'error' ? '#fef2f2' :
                 row.status === 'skipped' ? '#f8fafc' :
-                row.meters && parseFloat(row.meters) > 0 ? '#fff' : '#fafafa';
+                row.meters && parseFloat(row.meters) > 0 ? '#ffffff' : '#fafafa';
 
               const borderLeft =
                 row.status === 'success' ? '3px solid #22c55e' :
                 row.status === 'error' ? '3px solid #ef4444' :
-                row.meters && parseFloat(row.meters) > 0 ? '3px solid #38bdf8' :
+                row.meters && parseFloat(row.meters) > 0 ? '3px solid #0ea5e9' :
                 '3px solid transparent';
 
               return (
                 <div key={row.machine.id}>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 140px 120px 120px',
-                    padding: '14px 20px',
-                    gap: '12px',
-                    alignItems: 'center',
-                    background: rowBg,
-                    borderLeft,
-                    transition: 'all 0.2s',
-                  }}>
-                    {/* Machine name */}
+                  <div
+                    className={styles.machineRow}
+                    style={{ background: rowBg, borderLeft }}
+                  >
+                    {/* Machine info & status */}
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>
+                      <div className={styles.machineTitle}>
                         Machine {row.machine.machineNumber}
                       </div>
+                      {row.status === 'idle' && existingEntriesMap[row.machine.id] && (
+                        <div className={styles.loggedBadge}>
+                          ⚠️ Logged: {existingEntriesMap[row.machine.id].metersProduced.toFixed(2)} m ({existingEntriesMap[row.machine.id].workerName})
+                        </div>
+                      )}
                       {row.status === 'success' && (
-                        <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px' }}>✓ Saved</div>
+                        <div className={styles.statusSuccess}>✓ Saved successfully</div>
                       )}
                       {row.status === 'error' && (
-                        <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '2px' }}>✗ {row.errorMsg}</div>
+                        <div className={styles.statusError}>✗ {row.errorMsg}</div>
                       )}
                       {row.status === 'skipped' && (
-                        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>— Skipped</div>
+                        <div className={styles.statusSkipped}>— Skipped</div>
                       )}
-                    </div>
-
-                    {/* Rate */}
-                    <div style={{
-                      fontSize: '14px',
-                      color: row.machine.currentRatePerMeter > 0 ? '#334155' : '#ef4444',
-                      fontWeight: 500,
-                    }}>
-                      {row.machine.currentRatePerMeter > 0
-                        ? `₹${row.machine.currentRatePerMeter.toFixed(3)}`
-                        : 'No rate!'}
                     </div>
 
                     {/* Meters input */}
                     <div>
                       <input
                         ref={idx === 0 ? firstInputRef : undefined}
-                        className="bulk-meter-input"
+                        className={`bulk-meter-input ${styles.meterInput} ${row.meters && parseFloat(row.meters) > 0 ? styles.meterInputActive : ''}`}
                         type="number"
                         step="0.01"
                         min="0.01"
@@ -369,41 +339,12 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
                         onChange={e => handleMetersChange(row.machine.id, e.target.value)}
                         onKeyDown={e => handleKeyDown(e, idx)}
                         disabled={isSubmitting || row.status === 'success'}
-                        placeholder="—"
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          fontSize: '15px',
-                          fontWeight: 600,
-                          border: `1.5px solid ${row.meters && parseFloat(row.meters) > 0 ? '#38bdf8' : '#e2e8f0'}`,
-                          borderRadius: '8px',
-                          background: row.status === 'success' ? '#f0fdf4' : 'white',
-                          color: '#0f172a',
-                          outline: 'none',
-                          textAlign: 'right',
-                          boxSizing: 'border-box',
-                        }}
+                        placeholder="0.00"
                       />
-                    </div>
-
-                    {/* Amount preview */}
-                    <div style={{
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      color: row.status === 'success'
-                        ? '#16a34a'
-                        : previewAmount !== null ? '#2563eb' : '#cbd5e1',
-                      textAlign: 'right',
-                    }}>
-                      {row.status === 'success' && row.savedAmount !== undefined
-                        ? `₹${row.savedAmount.toFixed(2)}`
-                        : previewAmount !== null
-                        ? `₹${previewAmount.toFixed(2)}`
-                        : '—'}
                     </div>
                   </div>
                   {idx < machineRows.length - 1 && (
-                    <div style={{ height: '1px', background: '#f1f5f9', marginLeft: '20px' }} />
+                    <div style={{ height: '1px', background: '#f1f5f9', marginLeft: '24px' }} />
                   )}
                 </div>
               );
@@ -411,58 +352,30 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
 
             {/* Totals row */}
             {filledCount > 0 && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 140px 120px 120px',
-                padding: '14px 20px',
-                gap: '12px',
-                background: '#1e293b',
-                alignItems: 'center',
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#94a3b8' }}>
+              <div className={styles.totalsRow}>
+                <div className={styles.totalsLabel}>
                   TOTAL ({filledCount} machine{filledCount !== 1 ? 's' : ''})
                 </div>
-                <div />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc', textAlign: 'right' }}>
+                <div className={styles.totalsValue}>
                   {machineRows
                     .filter(r => r.meters && parseFloat(r.meters) > 0)
                     .reduce((sum, r) => sum + parseFloat(r.meters), 0)
                     .toFixed(2)} m
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8', textAlign: 'right' }}>
-                  ₹{machineRows
-                    .filter(r => r.meters && parseFloat(r.meters) > 0)
-                    .reduce((sum, r) => sum + parseFloat(r.meters) * r.machine.currentRatePerMeter, 0)
-                    .toFixed(2)}
                 </div>
               </div>
             )}
           </div>
 
           {/* Instruction text */}
-          <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px', textAlign: 'center' }}>
-            💡 Leave a machine blank to skip it. Press <kbd style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}>Enter</kbd> to move to next machine.
+          <p className={styles.hintText}>
+            💡 Leave a machine blank to skip it. Press <kbd className={styles.kbd}>Enter</kbd> to jump to the next machine.
           </p>
 
           {/* Submit button */}
           <button
             type="submit"
             disabled={isSubmitting || filledCount === 0}
-            style={{
-              width: '100%',
-              padding: '18px',
-              fontSize: '17px',
-              fontWeight: 700,
-              background: filledCount === 0
-                ? '#e2e8f0'
-                : 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-              color: filledCount === 0 ? '#94a3b8' : 'white',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: filledCount === 0 ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: filledCount > 0 ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none',
-            }}
+            className={`${styles.submitBtn} ${filledCount > 0 ? styles.submitBtnActive : styles.submitBtnDisabled}`}
           >
             {isSubmitting
               ? `⏳ Saving ${filledCount} entr${filledCount === 1 ? 'y' : 'ies'}...`
@@ -475,19 +388,13 @@ export default function BulkAddProductionClient({ workers, machines, userId, wor
 
       {/* Empty state */}
       {!workerId && (
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '60px 32px',
-          textAlign: 'center',
-          border: '2px dashed #e2e8f0',
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>👆</div>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+        <div className={styles.emptyState}>
+          <div style={{ fontSize: '44px', marginBottom: '16px' }}>🧵</div>
+          <div className={styles.emptyStateTitle}>
             Select a Worker to Begin
           </div>
-          <div style={{ fontSize: '14px', color: '#94a3b8', maxWidth: '320px', margin: '0 auto' }}>
-            After selecting a worker, all machines will appear below so you can enter meters for each in one go.
+          <div className={styles.emptyStateDesc}>
+            All assigned looms and machines will appear automatically so you can log meters rapidly in one smooth workflow.
           </div>
         </div>
       )}

@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { writeAuditLog } from './audit';
 import { getCurrentUser } from './auth';
-import { lookupRate } from '@/lib/business-logic/rate-lookup';
 import type { ProductionEntryWithDetails } from '@/lib/types/database';
 
 export async function createProductionEntry(params: {
@@ -12,6 +11,7 @@ export async function createProductionEntry(params: {
   machineId: string;
   metersProduced: number;
   productionDate: string;
+  shift?: 'day' | 'night';
   notes?: string;
 }): Promise<{ error?: string; id?: string }> {
   const user = await getCurrentUser();
@@ -23,13 +23,9 @@ export async function createProductionEntry(params: {
     return { error: 'Production date cannot be in the future.' };
   }
 
-  // Look up the rate effective on the production date
-  const rate = await lookupRate(params.machineId, params.productionDate);
-  if (rate === null) {
-    return { error: `No rate found for this machine on ${params.productionDate}. Please set a rate first.` };
-  }
-
-  const amount = Math.round(params.metersProduced * rate * 100) / 100;
+  const rate = 0;
+  const amount = 0;
+  const shift = params.shift === 'night' ? 'night' : 'day';
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -39,6 +35,7 @@ export async function createProductionEntry(params: {
       machine_id: params.machineId,
       meters_produced: params.metersProduced,
       production_date: params.productionDate,
+      shift,
       entry_date: today,
       rate_applied: rate,
       amount,
@@ -55,7 +52,7 @@ export async function createProductionEntry(params: {
     action: 'create',
     entityType: 'entry',
     entityId: data!.id,
-    newValue: { ...params, rate_applied: rate, amount },
+    newValue: { ...params, shift, rate_applied: rate, amount },
   });
 
   revalidatePath('/admin/production');
@@ -70,6 +67,7 @@ export async function updateProductionEntry(
     machineId?: string;
     metersProduced?: number;
     productionDate?: string;
+    shift?: 'day' | 'night';
     notes?: string;
   }
 ): Promise<{ error?: string }> {
@@ -96,21 +94,12 @@ export async function updateProductionEntry(
     }
   }
 
-  // If production_date or machine changed, re-lookup rate
   const machineId = params.machineId || existing.machine_id;
   const productionDate = params.productionDate || existing.production_date;
   const metersProduced = params.metersProduced ?? Number(existing.meters_produced);
-
-  let rateApplied = Number(existing.rate_applied);
-  if (params.productionDate || params.machineId) {
-    const newRate = await lookupRate(machineId, productionDate);
-    if (newRate === null) {
-      return { error: `No rate found for this machine on ${productionDate}.` };
-    }
-    rateApplied = newRate;
-  }
-
-  const amount = Math.round(metersProduced * rateApplied * 100) / 100;
+  const shift = params.shift || existing.shift || 'day';
+  const rateApplied = 0;
+  const amount = 0;
 
   const { error } = await supabase
     .from('production_entries')
@@ -119,6 +108,7 @@ export async function updateProductionEntry(
       machine_id: machineId,
       meters_produced: metersProduced,
       production_date: productionDate,
+      shift,
       rate_applied: rateApplied,
       amount,
       notes: params.notes !== undefined ? params.notes : existing.notes,
@@ -133,7 +123,7 @@ export async function updateProductionEntry(
     entityType: 'entry',
     entityId: id,
     oldValue: existing as Record<string, unknown>,
-    newValue: { ...params, rate_applied: rateApplied, amount },
+    newValue: { ...params, shift, rate_applied: rateApplied, amount },
   });
 
   revalidatePath('/admin/production');
@@ -191,6 +181,7 @@ export async function softDeleteProductionEntry(id: string): Promise<{ error?: s
 export async function getProductionEntries(params?: {
   workerId?: string;
   machineId?: string;
+  shift?: string;
   enteredBy?: string;
   startDate?: string;
   endDate?: string;
@@ -214,6 +205,7 @@ export async function getProductionEntries(params?: {
   }
   if (params?.workerId) query = query.eq('worker_id', params.workerId);
   if (params?.machineId) query = query.eq('machine_id', params.machineId);
+  if (params?.shift) query = query.eq('shift', params.shift);
   if (params?.enteredBy) query = query.eq('entered_by', params.enteredBy);
   if (params?.startDate) query = query.gte('production_date', params.startDate);
   if (params?.endDate) query = query.lte('production_date', params.endDate);
@@ -230,4 +222,70 @@ export async function getProductionEntries(params?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     entered_by_user: entry.users as any,
   })) as unknown as ProductionEntryWithDetails[];
+}
+
+export async function checkExistingProductionEntry(params: {
+  machineId: string;
+  productionDate: string;
+  shift: 'day' | 'night';
+}): Promise<{
+  exists: boolean;
+  entry?: {
+    id: string;
+    metersProduced: number;
+    workerName: string;
+  };
+}> {
+  if (!params.machineId || !params.productionDate) {
+    return { exists: false };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('production_entries')
+    .select('id, meters_produced, workers(name)')
+    .eq('machine_id', params.machineId)
+    .eq('production_date', params.productionDate)
+    .eq('shift', params.shift)
+    .eq('is_deleted', false)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { exists: false };
+  }
+
+  return {
+    exists: true,
+    entry: {
+      id: data.id,
+      metersProduced: Number(data.meters_produced),
+      workerName: (data.workers as any)?.name || 'Unknown Worker',
+    },
+  };
+}
+
+export async function getExistingEntriesForDateAndShift(params: {
+  productionDate: string;
+  shift: 'day' | 'night';
+}): Promise<Record<string, { metersProduced: number; workerName: string }>> {
+  if (!params.productionDate) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('production_entries')
+    .select('machine_id, meters_produced, workers(name)')
+    .eq('production_date', params.productionDate)
+    .eq('shift', params.shift)
+    .eq('is_deleted', false);
+
+  if (error || !data) return {};
+
+  const map: Record<string, { metersProduced: number; workerName: string }> = {};
+  for (const item of data) {
+    map[item.machine_id] = {
+      metersProduced: Number(item.meters_produced),
+      workerName: (item.workers as any)?.name || 'Unknown Worker',
+    };
+  }
+  return map;
 }

@@ -13,21 +13,9 @@ export default async function AddProductionPage() {
     getMachines(true), // active only
   ]);
 
-  // Get machines with current rates
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-  const { data: rates } = await supabase
-    .from('machine_rates')
-    .select('machine_id, rate_per_meter')
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`);
-
-  const rateMap = new Map<string, number>();
-  rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
-
-  const machinesWithRate = machines.map(m => ({
+  const machinesList = machines.map(m => ({
     id: m.id,
     machineNumber: m.machine_number,
-    currentRatePerMeter: rateMap.get(m.id) || 0,
   }));
 
   return (
@@ -38,7 +26,7 @@ export default async function AddProductionPage() {
       
       <AddProductionClient 
         workers={workers.map(w => ({ id: w.id, name: w.name }))}
-        machines={machinesWithRate}
+        machines={machinesList}
         userId={user?.id || ''}
       />
     </div>

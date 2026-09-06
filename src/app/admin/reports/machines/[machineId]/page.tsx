@@ -21,7 +21,7 @@ export default async function MachineDetailPage({
   // Get machine info
   const { data: machine } = await supabase
     .from('machines')
-    .select('id, machine_number, name, active')
+    .select('id, machine_number, active')
     .eq('id', machineId)
     .single();
 
@@ -33,9 +33,8 @@ export default async function MachineDetailPage({
     .select(`
       id,
       production_date,
+      shift,
       meters_produced,
-      rate_applied,
-      amount,
       workers(id, name)
     `)
     .eq('machine_id', machineId)
@@ -47,9 +46,9 @@ export default async function MachineDetailPage({
   const serialized = (entries || []).map((e: any) => ({
     id: e.id,
     productionDate: e.production_date,
+    shift: (e.shift as 'day' | 'night') || 'day',
     metersProduced: Number(e.meters_produced),
-    rateApplied: Number(e.rate_applied),
-    amount: Number(e.amount),
+    workerId: e.workers?.id || '',
     workerName: e.workers?.name || '—',
   }));
 
@@ -58,7 +57,6 @@ export default async function MachineDetailPage({
       key={machineId + '_' + startDate + '_' + endDate}
       machineId={machineId}
       machineNumber={machine.machine_number}
-      machineName={machine.name || ''}
       entries={serialized}
       startDate={startDate}
       endDate={endDate}

@@ -58,7 +58,7 @@ export default function LoginForm() {
         className={styles.submitButton}
         disabled={loading}
       >
-        {loading ? 'Authenticating...' : 'Sign In'}
+        {loading ? 'Authenticating...' : 'Sign In →'}
       </button>
     </form>
   );

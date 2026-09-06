@@ -1,19 +1,29 @@
 .dashboardLayout {
   display: flex;
   min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100dvh;
+  background-color: var(--bg-page, #f8fafc);
+  position: relative;
 }
 
 .mainContent {
   flex: 1;
-  margin-left: 260px;
-  padding: 32px;
-  max-width: calc(100% - 260px);
+  margin-left: 270px;
+  padding: 36px 44px;
+  max-width: calc(100% - 270px);
   min-width: 0;
+  transition: all 0.2s ease;
 }
 
 /* ── Mobile responsive ── */
+@media (max-width: 1024px) {
+  .mainContent {
+    margin-left: 240px;
+    max-width: calc(100% - 240px);
+    padding: 28px 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboardLayout {
     flex-direction: column;
@@ -22,14 +32,13 @@
   .mainContent {
     margin-left: 0;
     max-width: 100%;
-    padding: 16px;
-    /* Push content below the fixed mobile header (56px) */
-    margin-top: 56px;
+    padding: 20px 16px;
+    margin-top: 60px; /* offset fixed mobile header */
   }
 }
 
 @media (max-width: 480px) {
   .mainContent {
-    padding: 12px;
+    padding: 16px 12px;
   }
 }

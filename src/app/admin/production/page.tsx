@@ -24,32 +24,20 @@ export default async function AdminProductionPage({
     getMachines(true),
   ]);
 
-  // Get current machine rates for edit modal
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-  const { data: rates } = await supabase
-    .from('machine_rates')
-    .select('machine_id, rate_per_meter')
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`);
-  const rateMap = new Map<string, number>();
-  rates?.forEach(r => rateMap.set(r.machine_id, Number(r.rate_per_meter)));
-
   const serialized = entries.map(e => ({
     id: e.id,
     productionDate: e.production_date,
+    shift: (e as any).shift || 'day',
     entryDate: e.entry_date,
     meters: String(e.meters_produced),
-    ratePerMeter: String(e.rate_applied),
-    amount: String(e.amount),
     worker: { id: (e as any).workers?.id || '', name: (e as any).workers?.name || '' },
     machine: { id: (e as any).machines?.id || '', machineNumber: (e as any).machines?.machine_number || '' },
     enteredBy: e.entered_by,
   }));
 
-  const machinesWithRate = machines.map(m => ({
+  const simplifiedMachines = machines.map(m => ({
     id: m.id,
     machineNumber: m.machine_number,
-    currentRatePerMeter: rateMap.get(m.id) || 0,
   }));
 
   return (
@@ -59,7 +47,7 @@ export default async function AdminProductionPage({
       currentUserId={user?.id}
       currentUserRole="admin"
       workers={workers.map(w => ({ id: w.id, name: w.name }))}
-      machines={machinesWithRate}
+      machines={simplifiedMachines}
     />
   );
 }
