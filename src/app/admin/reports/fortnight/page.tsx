@@ -1,6 +1,6 @@
 import React from 'react';
 import { getWorkers } from '@/actions/workers';
-import { getWorkerFortnightData } from '@/actions/fortnight';
+import { getWorkerFortnightData, getAllWorkersFortnightMachineTotals } from '@/actions/fortnight';
 import FortnightSheetClient from './FortnightSheetClient';
 
 export default async function FortnightReportPage({
@@ -28,14 +28,18 @@ export default async function FortnightReportPage({
 
   const workerId = sp.workerId || (workers.length > 0 ? workers[0].id : '');
 
-  const initialData = workerId
-    ? await getWorkerFortnightData({ workerId, year, month, period })
-    : null;
+  const [initialData, initialAllWorkersData] = await Promise.all([
+    workerId && workerId !== 'ALL'
+      ? getWorkerFortnightData({ workerId, year, month, period })
+      : null,
+    getAllWorkersFortnightMachineTotals({ year, month, period }),
+  ]);
 
   return (
     <FortnightSheetClient
       workers={workers.map(w => ({ id: w.id, name: w.name }))}
       initialData={initialData}
+      initialAllWorkersData={initialAllWorkersData}
       selectedWorkerId={workerId}
       selectedYear={year}
       selectedMonth={month}
