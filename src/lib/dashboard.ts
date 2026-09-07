@@ -122,6 +122,20 @@ export async function getLiveDashboardStats(): Promise<DashboardStats> {
     };
   });
 
+  // Sort machines in natural alphanumeric order: 1..64, then A..D
+  fleet.sort((a, b) => {
+    const aNum = parseInt(a.machineNumber, 10);
+    const bNum = parseInt(b.machineNumber, 10);
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      if (aNum !== bNum) return aNum - bNum;
+    } else if (!isNaN(aNum)) {
+      return -1;
+    } else if (!isNaN(bNum)) {
+      return 1;
+    }
+    return a.machineNumber.localeCompare(b.machineNumber, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
   const runningCount = fleet.filter(f => f.isRunning).length;
   const idleCount = fleet.filter(f => !f.isRunning).length;
 

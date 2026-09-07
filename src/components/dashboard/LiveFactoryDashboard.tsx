@@ -1,5 +1,6 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import type { DashboardStats } from '@/lib/dashboard';
 import styles from './liveDashboard.module.css';
 
@@ -9,12 +10,36 @@ interface Props {
 
 export default function LiveFactoryDashboard({ stats }: Props) {
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
+  const [fleetFilter, setFleetFilter] = useState<'all' | 'running' | 'idle'>('all');
 
   // Maximum meters in the 7-day trend for scaling
   const maxDayMeters = Math.max(
     ...stats.sevenDayTrend.map(d => d.totalMeters),
     100
   );
+
+  // Guarantee natural alphanumeric sort: 1..64, then A..D
+  const sortedFleet = useMemo(() => {
+    return [...stats.fleet].sort((a, b) => {
+      const aNum = parseInt(a.machineNumber, 10);
+      const bNum = parseInt(b.machineNumber, 10);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        if (aNum !== bNum) return aNum - bNum;
+      } else if (!isNaN(aNum)) {
+        return -1;
+      } else if (!isNaN(bNum)) {
+        return 1;
+      }
+      return a.machineNumber.localeCompare(b.machineNumber, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [stats.fleet]);
+
+  // Filter fleet based on selected tab
+  const displayedFleet = useMemo(() => {
+    if (fleetFilter === 'running') return sortedFleet.filter(m => m.isRunning);
+    if (fleetFilter === 'idle') return sortedFleet.filter(m => !m.isRunning);
+    return sortedFleet;
+  }, [sortedFleet, fleetFilter]);
 
   return (
     <div className={styles.container}>
@@ -110,31 +135,63 @@ export default function LiveFactoryDashboard({ stats }: Props) {
         {/* Machine Status Breakdown */}
         <div className={styles.panelCard}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>
-              <span>⚙️</span> Machine Fleet Status
-            </h3>
-            <span className={styles.panelSubtitle}>
-              {stats.fleet.length} active machines
-            </span>
+            <div>
+              <h3 className={styles.panelTitle}>
+                <span>⚙️</span> Machine Fleet Status
+              </h3>
+              <span className={styles.panelSubtitle}>
+                {stats.fleet.length} active machines • {stats.runningCount} running, {stats.idleCount} idle
+              </span>
+            </div>
+
+            <div className={styles.fleetFilterGroup}>
+              <button
+                type="button"
+                onClick={() => setFleetFilter('all')}
+                className={`${styles.filterBtn} ${fleetFilter === 'all' ? styles.filterBtnActive : ''}`}
+              >
+                All ({stats.fleet.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFleetFilter('running')}
+                className={`${styles.filterBtn} ${fleetFilter === 'running' ? styles.filterBtnActiveGreen : ''}`}
+              >
+                <span className={styles.fleetDotRunning} /> Running ({stats.runningCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFleetFilter('idle')}
+                className={`${styles.filterBtn} ${fleetFilter === 'idle' ? styles.filterBtnActiveGray : ''}`}
+              >
+                <span className={styles.fleetDotIdle} /> Idle ({stats.idleCount})
+              </button>
+            </div>
           </div>
 
           <div className={styles.fleetContainer}>
-            {stats.fleet.map(m => (
-              <div
+            {displayedFleet.map(m => (
+              <Link
                 key={m.id}
+                href={`/admin/reports/machines/${m.id}`}
+                title={`Machine ${m.machineNumber}: ${m.isRunning ? `${m.metersToday.toFixed(1)}m produced today` : 'Idle today'}`}
                 className={`${styles.fleetChip} ${m.isRunning ? styles.fleetChipRunning : styles.fleetChipIdle}`}
               >
-                <span className={m.isRunning ? styles.fleetDotRunning : styles.fleetDotIdle} />
-                <span>Machine {m.machineNumber}</span>
+                <div className={styles.fleetChipLeft}>
+                  <span className={m.isRunning ? styles.fleetDotRunning : styles.fleetDotIdle} />
+                  <span className={styles.fleetChipTitle}>Machine {m.machineNumber}</span>
+                </div>
                 {m.isRunning ? (
-                  <strong style={{ color: '#15803d', fontFamily: 'var(--font-mono)' }}>{m.metersToday.toFixed(0)}m</strong>
+                  <strong className={styles.fleetMeterValue}>{m.metersToday.toFixed(0)}m</strong>
                 ) : (
-                  <span style={{ color: '#94a3b8', fontSize: '11px' }}>Idle</span>
+                  <span className={styles.fleetIdleText}>Idle</span>
                 )}
-              </div>
+              </Link>
             ))}
-            {stats.fleet.length === 0 && (
-              <span style={{ color: '#94a3b8', fontSize: '13px' }}>No machines registered yet.</span>
+            {displayedFleet.length === 0 && (
+              <div className={styles.fleetEmpty}>
+                No {fleetFilter} machines found today.
+              </div>
             )}
           </div>
         </div>
